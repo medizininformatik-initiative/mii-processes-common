@@ -6,7 +6,7 @@
 
 	<groupId>de.medizininformatik-initiative</groupId>
 	<artifactId>mii-processes-common</artifactId>
-	<version>1.0.0.0-RC1</version>
+	<version>1.0.0.0-RC2</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -39,7 +39,7 @@
 		<dependency>
 			<groupId>dev.dsf</groupId>
 			<artifactId>dsf-bpe-process-api-v1</artifactId>
-			<version>1.1.0</version>
+			<version>1.2.0</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
