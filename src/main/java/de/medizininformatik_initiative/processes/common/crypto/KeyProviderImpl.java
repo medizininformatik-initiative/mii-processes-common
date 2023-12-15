@@ -172,7 +172,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 						"PublicKey Bundle on DSF FHIR server with baseUrl '{}' contains > 1 entries ({}), using the first",
 						webserviceUrl, total);
 
-			return Optional.of(((Bundle) publicKeyBundle.getEntryFirstRep().getResource()));
+			return Optional.of((Bundle) publicKeyBundle.getEntryFirstRep().getResource());
 		}
 		else
 		{
