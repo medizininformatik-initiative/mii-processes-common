@@ -31,9 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
+import de.hsheilbronn.mi.utils.crypto.io.PemIo;
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.DataLogger;
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
-import de.rwh.utils.crypto.io.PemIo;
 import dev.dsf.bpe.v1.ProcessPluginApi;
 
 public class KeyProviderImpl implements KeyProvider, InitializingBean
