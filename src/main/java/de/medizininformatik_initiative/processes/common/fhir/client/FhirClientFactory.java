@@ -16,10 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.context.FhirContext;
-import de.hsheilbronn.mi.utils.crypto.CertificateHelper;
-import de.hsheilbronn.mi.utils.crypto.io.CertificateReader;
-import de.hsheilbronn.mi.utils.crypto.io.PemIo;
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.DataLogger;
+import de.rwh.utils.crypto.CertificateHelper;
+import de.rwh.utils.crypto.io.CertificateReader;
+import de.rwh.utils.crypto.io.PemIo;
 
 public class FhirClientFactory
 {
