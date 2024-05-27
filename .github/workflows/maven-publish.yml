@@ -5,7 +5,7 @@ on:
     types: [closed]
     branches: [develop]
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   publish:
