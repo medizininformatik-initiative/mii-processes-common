@@ -15,7 +15,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.Base64;
-import java.util.Objects;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -64,10 +63,6 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	@Override
 	public void afterPropertiesSet()
 	{
-		Objects.requireNonNull(issuerUrl, "issuerUrl");
-		Objects.requireNonNull(clientId, "clientId");
-		Objects.requireNonNull(clientSecret, "clientSecret");
-
 		if (connectTimeout < 0)
 			throw new IllegalArgumentException("connectTimeout < 0");
 
@@ -82,6 +77,15 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	}
 
 	@Override
+	public String getInfo()
+	{
+		return "[issuerUrl: " + issuerUrl + ", clientId: " + clientId + ", clientSecret: "
+				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + connectTimeout + ", proxyUrl: "
+				+ proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
+				+ (proxyPassword != null ? "***" : "null") + "]";
+	}
+
+	@Override
 	public AccessToken requestToken()
 	{
 		try
@@ -90,7 +94,10 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 			HttpRequest request = createAccessTokenRequest();
 			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-			return OBJECT_MAPPER.readValue(response.body(), AccessToken.class);
+			if (response.statusCode() < 400)
+				return OBJECT_MAPPER.readValue(response.body(), AccessToken.class);
+			else
+				throw new RuntimeException("Could not retrieve access token: " + response.statusCode());
 		}
 		catch (IOException | InterruptedException exception)
 		{

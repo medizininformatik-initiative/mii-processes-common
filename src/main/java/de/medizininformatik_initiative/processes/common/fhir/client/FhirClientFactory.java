@@ -88,16 +88,16 @@ public class FhirClientFactory
 
 	public void testConnection()
 	{
-		// TODO: log token provider configuration
 		try
 		{
 			logger.info(
 					"Testing connection to FHIR server with {trustStorePath: {}, certificatePath: {}, privateKeyPath: {}, privateKeyPassword: {},"
-							+ " basicAuthUsername: {}, basicAuthPassword: {}, bearerToken: {}, serverBase: {}, proxyUrl: {}, proxyUsername: {}, proxyPassword: {}}",
+							+ " basicAuthUsername: {}, basicAuthPassword: {}, bearerToken: {}, oauth2Provider: {}, serverBase: {}, proxyUrl: {}, proxyUsername: {}, proxyPassword: {}}",
 					trustStorePath, certificatePath, privateKeyPath, privateKeyPassword != null ? "***" : "null",
 					fhirServerBasicAuthUsername, fhirServerBasicAuthPassword != null ? "***" : "null",
-					fhirServerBearerToken != null ? "***" : "null", fhirServerBase, proxyUrl, proxyUsername,
-					proxyPassword != null ? "***" : "null");
+					fhirServerBearerToken != null ? "***" : "null",
+					fhirServerOAuth2TokenProvider != null ? fhirServerOAuth2TokenProvider.getInfo() : "null",
+					fhirServerBase, proxyUrl, proxyUsername, proxyPassword != null ? "***" : "null");
 
 			getFhirClient().testConnection();
 		}

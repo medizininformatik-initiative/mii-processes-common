@@ -28,6 +28,12 @@ public class OAuth2TokenProvider implements TokenProvider, InitializingBean
 	}
 
 	@Override
+	public String getInfo()
+	{
+		return tokenClient.getInfo();
+	}
+
+	@Override
 	public String getToken()
 	{
 		if (token == null || token.isExpired())
