@@ -25,8 +25,10 @@ import ca.uhn.fhir.rest.client.interceptor.BasicAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IReadTyped;
+import de.medizininformatik_initiative.processes.common.fhir.client.interceptor.OAuth2Interceptor;
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.DataLogger;
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.HapiClientLogger;
+import de.medizininformatik_initiative.processes.common.fhir.client.token.TokenProvider;
 
 public class FhirClientImpl implements FhirClient
 {
@@ -39,6 +41,7 @@ public class FhirClientImpl implements FhirClient
 	private final String fhirServerBasicAuthUsername;
 	private final String fhirServerBasicAuthPassword;
 	private final String fhirServerBearerToken;
+	private final TokenProvider fhirServerOAuth2TokenProvider;
 
 	private final boolean hapiClientVerbose;
 
@@ -50,9 +53,10 @@ public class FhirClientImpl implements FhirClient
 
 	public FhirClientImpl(KeyStore trustStore, KeyStore keyStore, char[] keyStorePassword, int connectTimeout,
 			int socketTimeout, int connectionRequestTimeout, String fhirServerBasicAuthUsername,
-			String fhirServerBasicAuthPassword, String fhirServerBearerToken, String fhirServerBase, String proxyUrl,
-			String proxyUsername, String proxyPassword, boolean hapiClientVerbose, FhirContext fhirContext,
-			String localIdentifierValue, DataLogger dataLogger)
+			String fhirServerBasicAuthPassword, String fhirServerBearerToken,
+			TokenProvider fhirServerOAuth2TokenProvider, String fhirServerBase, String proxyUrl, String proxyUsername,
+			String proxyPassword, boolean hapiClientVerbose, FhirContext fhirContext, String localIdentifierValue,
+			DataLogger dataLogger)
 	{
 		clientFactory = createClientFactory(trustStore, keyStore, keyStorePassword, connectTimeout, socketTimeout,
 				connectionRequestTimeout);
@@ -62,6 +66,7 @@ public class FhirClientImpl implements FhirClient
 		this.fhirServerBasicAuthUsername = fhirServerBasicAuthUsername;
 		this.fhirServerBasicAuthPassword = fhirServerBasicAuthPassword;
 		this.fhirServerBearerToken = fhirServerBearerToken;
+		this.fhirServerOAuth2TokenProvider = fhirServerOAuth2TokenProvider;
 
 		configureProxy(clientFactory, proxyUrl, proxyUsername, proxyPassword);
 
@@ -118,10 +123,16 @@ public class FhirClientImpl implements FhirClient
 					new BasicAuthInterceptor(fhirServerBasicAuthUsername, fhirServerBasicAuthPassword));
 	}
 
-	private void configureBearerTokenAuthInterceptor(IGenericClient client)
+	private void configuredWithBearerTokenAuth(IGenericClient client)
 	{
 		if (fhirServerBearerToken != null)
 			client.registerInterceptor(new BearerTokenAuthInterceptor(fhirServerBearerToken));
+	}
+
+	private void configuredWithOAuth(IGenericClient client)
+	{
+		if (fhirServerOAuth2TokenProvider != null && fhirServerOAuth2TokenProvider.isConfigured())
+			client.registerInterceptor(new OAuth2Interceptor(fhirServerOAuth2TokenProvider));
 	}
 
 	private void configureLoggingInterceptor(IGenericClient client)
@@ -158,7 +169,8 @@ public class FhirClientImpl implements FhirClient
 		IGenericClient client = clientFactory.newGenericClient(fhirServerBase);
 
 		configuredWithBasicAuth(client);
-		configureBearerTokenAuthInterceptor(client);
+		configuredWithBearerTokenAuth(client);
+		configuredWithOAuth(client);
 		configureLoggingInterceptor(client);
 
 		return client;
