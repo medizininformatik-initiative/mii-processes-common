@@ -80,8 +80,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	public String getInfo()
 	{
 		return "[issuerUrl: " + issuerUrl + ", clientId: " + clientId + ", clientSecret: "
-				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + connectTimeout + ", proxyUrl: "
-				+ proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
+				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath.toString()
+				+ ", proxyUrl: " + proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
 				+ (proxyPassword != null ? "***" : "null") + "]";
 	}
 
@@ -111,12 +111,12 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		builder.connectTimeout(Duration.ofMillis(connectTimeout));
 
 		configureProxy(builder);
-		configureTruststore(builder);
+		configureTrustStore(builder);
 
 		return builder.build();
 	}
 
-	private void configureTruststore(HttpClient.Builder builder)
+	private void configureTrustStore(HttpClient.Builder builder)
 	{
 		if (trustStorePath != null)
 		{
@@ -135,7 +135,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 					.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			trustManagerFactory.init(trustStore);
 
-			SSLContext sslContext = SSLContext.getDefault();
+			SSLContext sslContext = SSLContext.getInstance("TLS");
 			sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
 			return sslContext;
