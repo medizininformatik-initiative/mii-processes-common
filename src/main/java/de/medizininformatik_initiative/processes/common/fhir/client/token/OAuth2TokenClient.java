@@ -56,6 +56,11 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 
 	private final ObjectMapper objectMapper;
 
+	static
+	{
+		System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
+	}
+
 	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
 			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword)
 	{
