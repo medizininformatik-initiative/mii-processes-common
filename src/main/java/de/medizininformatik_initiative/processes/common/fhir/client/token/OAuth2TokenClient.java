@@ -1,6 +1,7 @@
 package de.medizininformatik_initiative.processes.common.fhir.client.token;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
@@ -31,7 +32,14 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 {
 	private static final Logger logger = LoggerFactory.getLogger(OAuth2TokenClient.class);
 
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private static final String TLS = "TLS";
+
+	private static final String HEADER_CONTENT_TYPE = "Content-Type";
+	private static final String MIME_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
+	private static final String HEADER_AUTHORIZATION = "Authorization";
+	private static final String HEADER_AUTHORIZATION_PROXY = "Proxy-Authorization";
+	private static final String PREFIX_BASIC_AUTH = "Basic ";
+	private static final String GRANT_TYPE_CLIENT_CREDENTIALS = "grant_type=client_credentials";
 
 	private final String issuerUrl;
 	private final String clientId;
@@ -46,8 +54,18 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	private final String proxyUsername;
 	private final String proxyPassword;
 
+	private final ObjectMapper objectMapper;
+
 	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
 			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword)
+	{
+		this(issuerUrl, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath, proxyUrl, proxyUsername,
+				proxyPassword, new ObjectMapper());
+	}
+
+	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
+			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword,
+			ObjectMapper objectMapper)
 	{
 		this.issuerUrl = issuerUrl;
 		this.clientId = clientId;
@@ -58,6 +76,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		this.proxyUrl = proxyUrl;
 		this.proxyUsername = proxyUsername;
 		this.proxyPassword = proxyPassword;
+		this.objectMapper = objectMapper;
 	}
 
 	@Override
@@ -94,10 +113,10 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 			HttpRequest request = createAccessTokenRequest();
 			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-			if (response.statusCode() < 400)
-				return OBJECT_MAPPER.readValue(response.body(), AccessToken.class);
+			if (response.statusCode() == HttpURLConnection.HTTP_OK)
+				return objectMapper.readValue(response.body(), AccessToken.class);
 			else
-				throw new RuntimeException("Could not retrieve access token: " + response.statusCode());
+				throw new RuntimeException("Could not retrieve access token, status code: " + response.statusCode());
 		}
 		catch (IOException | InterruptedException exception)
 		{
@@ -135,7 +154,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 					.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			trustManagerFactory.init(trustStore);
 
-			SSLContext sslContext = SSLContext.getInstance("TLS");
+			SSLContext sslContext = SSLContext.getInstance(TLS);
 			sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
 			return sslContext;
@@ -176,8 +195,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		configureAuthentication(builder);
 		configureProxyAuthentication(builder);
 
-		builder.header("Content-Type", "application/x-www-form-urlencoded");
-		builder.POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"));
+		builder.header(HEADER_CONTENT_TYPE, MIME_TYPE_FORM_URLENCODED);
+		builder.POST(HttpRequest.BodyPublishers.ofString(GRANT_TYPE_CLIENT_CREDENTIALS));
 
 		return builder.build();
 	}
@@ -186,7 +205,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	{
 		// Keycloak not sending WWW-Authenticate header for response code 401
 		String credentials = getCredentials(clientId, clientSecret);
-		builder.header("Authorization", "Basic " + credentials);
+		builder.header(HEADER_AUTHORIZATION, PREFIX_BASIC_AUTH + credentials);
 	}
 
 	private void configureProxyAuthentication(HttpRequest.Builder builder)
@@ -195,7 +214,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		if (proxyUrl != null && proxyUsername != null && proxyPassword != null)
 		{
 			String proxyCredentials = getCredentials(proxyUsername, proxyPassword);
-			builder.setHeader("Proxy-Authorization", "Basic " + proxyCredentials);
+			builder.setHeader(HEADER_AUTHORIZATION_PROXY, PREFIX_BASIC_AUTH + proxyCredentials);
 		}
 	}
 
