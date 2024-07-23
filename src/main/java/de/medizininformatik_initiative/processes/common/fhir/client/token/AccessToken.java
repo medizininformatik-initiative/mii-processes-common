@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AccessToken
 {
-	private static final int BUFFER = 10;
+	private static final int BUFFER_10 = 10;
 
 	private final String token;
 
@@ -29,6 +29,6 @@ public class AccessToken
 
 	public boolean isExpired()
 	{
-		return LocalDateTime.now().plusSeconds(BUFFER).isAfter(expiresAt);
+		return LocalDateTime.now().plusSeconds(BUFFER_10).isAfter(expiresAt);
 	}
 }
