@@ -210,7 +210,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	{
 		if (proxyUrl != null && proxyUsername != null & proxyPassword != null)
 		{
-			// Preemptive proxy basic authentication because non preemptive prxy authentication overrides
+			// Preemptive proxy basic authentication because non preemptive proxy authentication overrides
 			// preemptive authentication for oauth2 provider, see configureAuthentication(HttpRequest.Builder builder)
 			String credentials = getCredentials(proxyUsername, proxyPassword);
 			builder.header("Proxy-Authorization", "Basic " + credentials);
