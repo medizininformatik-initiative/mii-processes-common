@@ -32,15 +32,6 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 {
 	private static final Logger logger = LoggerFactory.getLogger(OAuth2TokenClient.class);
 
-	private static final String TLS = "TLS";
-
-	private static final String HEADER_CONTENT_TYPE = "Content-Type";
-	private static final String MIME_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
-	private static final String HEADER_AUTHORIZATION = "Authorization";
-	private static final String HEADER_AUTHORIZATION_PROXY = "Proxy-Authorization";
-	private static final String PREFIX_BASIC_AUTH = "Basic ";
-	private static final String GRANT_TYPE_CLIENT_CREDENTIALS = "grant_type=client_credentials";
-
 	private final String issuerUrl;
 	private final String clientId;
 	private final String clientSecret;
@@ -159,7 +150,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 					.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			trustManagerFactory.init(trustStore);
 
-			SSLContext sslContext = SSLContext.getInstance(TLS);
+			SSLContext sslContext = SSLContext.getInstance("TLS");
 			sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
 			return sslContext;
@@ -200,27 +191,27 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		configureAuthentication(builder);
 		configureProxyAuthentication(builder);
 
-		builder.header(HEADER_CONTENT_TYPE, MIME_TYPE_FORM_URLENCODED);
-		builder.POST(HttpRequest.BodyPublishers.ofString(GRANT_TYPE_CLIENT_CREDENTIALS));
+		builder.header("Content-Type", "application/x-www-form-urlencoded");
+		builder.POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"));
 
 		return builder.build();
 	}
 
 	private void configureAuthentication(HttpRequest.Builder builder)
 	{
-		// Keycloak not sending WWW-Authenticate header for response code 401
+		// Preemptive basic authentication part of the OAuth 2.0 Authorization Framework
+		// RFC 6749 section 4.4.2 Access Token Request specification:
+		// https://datatracker.ietf.org/doc/html/rfc6749#section-4.4.2
 		String credentials = getCredentials(clientId, clientSecret);
-		builder.header(HEADER_AUTHORIZATION, PREFIX_BASIC_AUTH + credentials);
+		builder.header("Authorization", "Basic " + credentials);
 	}
 
 	private void configureProxyAuthentication(HttpRequest.Builder builder)
 	{
-		// Proxy authentication using similar workaround as basic authentication
-		if (proxyUrl != null && proxyUsername != null && proxyPassword != null)
-		{
-			String proxyCredentials = getCredentials(proxyUsername, proxyPassword);
-			builder.setHeader(HEADER_AUTHORIZATION_PROXY, PREFIX_BASIC_AUTH + proxyCredentials);
-		}
+		// Preemptive proxy basic authentication because non preemptive prxy authentication overrides
+		// preemptive authentication for oauth2 provider, see configureAuthentication(HttpRequest.Builder builder)
+		String credentials = getCredentials(proxyUsername, proxyPassword);
+		builder.header("Proxy-Authorization", "Basic " + credentials);
 	}
 
 	private String getCredentials(String username, String password)
