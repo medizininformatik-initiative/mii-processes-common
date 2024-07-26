@@ -90,7 +90,7 @@ public class FhirClientImpl implements FhirClient
 				clientFactory.setProxy(url.getHost(), url.getPort());
 				clientFactory.setProxyCredentials(proxyUsername, proxyPassword);
 
-				logger.info("Using proxy for FHIR server connection with {host: {}, port: {}, username: {}}",
+				logger.debug("Using proxy for FHIR server connection with {host: {}, port: {}, username: {}}",
 						url.getHost(), url.getPort(), proxyUsername);
 			}
 			catch (MalformedURLException e)
