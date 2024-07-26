@@ -129,7 +129,7 @@ public class FhirClientImpl implements FhirClient
 			client.registerInterceptor(new BearerTokenAuthInterceptor(fhirServerBearerToken));
 	}
 
-	private void configuredWithOAuth(IGenericClient client)
+	private void configuredWithOAuth2(IGenericClient client)
 	{
 		if (fhirServerOAuth2TokenProvider != null && fhirServerOAuth2TokenProvider.isConfigured())
 			client.registerInterceptor(new OAuth2Interceptor(fhirServerOAuth2TokenProvider));
@@ -170,7 +170,7 @@ public class FhirClientImpl implements FhirClient
 
 		configuredWithBasicAuth(client);
 		configuredWithBearerTokenAuth(client);
-		configuredWithOAuth(client);
+		configuredWithOAuth2(client);
 		configureLoggingInterceptor(client);
 
 		return client;
