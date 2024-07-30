@@ -205,7 +205,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		// Preemptive basic authentication part of the OAuth 2.0 Authorization Framework
 		// RFC 6749 section 4.4.2 Access Token Request specification:
 		// https://datatracker.ietf.org/doc/html/rfc6749#section-4.4.2
-		String credentials = getCredentials(clientId, clientSecret);
+		String credentials = encodeCredentials(clientId, clientSecret);
 		builder.header("Authorization", "Basic " + credentials);
 	}
 
@@ -215,12 +215,12 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		{
 			// Preemptive proxy basic authentication because non preemptive proxy authentication overrides
 			// preemptive authentication for oauth2 provider, see configureAuthentication(HttpRequest.Builder builder)
-			String credentials = getCredentials(proxyUsername, proxyPassword);
+			String credentials = encodeCredentials(proxyUsername, proxyPassword);
 			builder.header("Proxy-Authorization", "Basic " + credentials);
 		}
 	}
 
-	private String getCredentials(String username, String password)
+	private String encodeCredentials(String username, String password)
 	{
 		String credentials = username + ":" + password;
 		return Base64.getEncoder().encodeToString(credentials.getBytes());
