@@ -180,8 +180,9 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 			URI uri = URI.create(proxyUrl);
 			builder.proxy(ProxySelector.of(new InetSocketAddress(uri.getHost(), uri.getPort())));
 
-			logger.debug("Using proxy for oauth2 provider connection with {host: {}, port: {}, username: {}}",
-					uri.getHost(), uri.getPort(), proxyUsername);
+			logger.debug(
+					"Using proxy for oauth2 provider connection with {host: {}, port: {}, username: {}, password: {}}",
+					uri.getHost(), uri.getPort(), proxyUsername, proxyPassword != null ? "***" : "null");
 		}
 	}
 
