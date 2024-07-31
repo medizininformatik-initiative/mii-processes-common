@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.context.FhirContext;
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.DataLogger;
+import de.medizininformatik_initiative.processes.common.fhir.client.token.TokenProvider;
 import de.rwh.utils.crypto.CertificateHelper;
 import de.rwh.utils.crypto.io.CertificateReader;
 import de.rwh.utils.crypto.io.PemIo;
@@ -38,6 +39,7 @@ public class FhirClientFactory
 	private final String fhirServerBasicAuthUsername;
 	private final String fhirServerBasicAuthPassword;
 	private final String fhirServerBearerToken;
+	private final TokenProvider fhirServerOAuth2TokenProvider;
 
 	private final String proxyUrl;
 	private final String proxyUsername;
@@ -54,8 +56,8 @@ public class FhirClientFactory
 	public FhirClientFactory(Path trustStorePath, Path certificatePath, Path privateKeyPath, char[] privateKeyPassword,
 			int connectTimeout, int socketTimeout, int connectionRequestTimeout, String fhirServerBase,
 			String fhirServerBasicAuthUsername, String fhirServerBasicAuthPassword, String fhirServerBearerToken,
-			String proxyUrl, String proxyUsername, String proxyPassword, boolean hapiClientVerbose,
-			FhirContext fhirContext, String localIdentifierValue, DataLogger dataLogger)
+			TokenProvider fhirServerOAuth2TokenProvider, String proxyUrl, String proxyUsername, String proxyPassword,
+			boolean hapiClientVerbose, FhirContext fhirContext, String localIdentifierValue, DataLogger dataLogger)
 	{
 		this.trustStorePath = trustStorePath;
 		this.certificatePath = certificatePath;
@@ -70,6 +72,7 @@ public class FhirClientFactory
 		this.fhirServerBasicAuthUsername = fhirServerBasicAuthUsername;
 		this.fhirServerBasicAuthPassword = fhirServerBasicAuthPassword;
 		this.fhirServerBearerToken = fhirServerBearerToken;
+		this.fhirServerOAuth2TokenProvider = fhirServerOAuth2TokenProvider;
 
 		this.proxyUrl = proxyUrl;
 		this.proxyUsername = proxyUsername;
@@ -89,11 +92,12 @@ public class FhirClientFactory
 		{
 			logger.info(
 					"Testing connection to FHIR server with {trustStorePath: {}, certificatePath: {}, privateKeyPath: {}, privateKeyPassword: {},"
-							+ " basicAuthUsername {}, basicAuthPassword {}, bearerToken {}, serverBase: {}, proxyUrl {}, proxyUsername {}, proxyPassword {}}",
+							+ " basicAuthUsername: {}, basicAuthPassword: {}, bearerToken: {}, oauth2Provider: {}, serverBase: {}, proxyUrl: {}, proxyUsername: {}, proxyPassword: {}}",
 					trustStorePath, certificatePath, privateKeyPath, privateKeyPassword != null ? "***" : "null",
 					fhirServerBasicAuthUsername, fhirServerBasicAuthPassword != null ? "***" : "null",
-					fhirServerBearerToken != null ? "***" : "null", fhirServerBase, proxyUrl, proxyUsername,
-					proxyPassword != null ? "***" : "null");
+					fhirServerBearerToken != null ? "***" : "null",
+					fhirServerOAuth2TokenProvider != null ? fhirServerOAuth2TokenProvider.getInfo() : "null",
+					fhirServerBase, proxyUrl, proxyUsername, proxyPassword != null ? "***" : "null");
 
 			getFhirClient().testConnection();
 		}
@@ -137,8 +141,8 @@ public class FhirClientFactory
 
 		return new FhirClientImpl(trustStore, keyStore, keyStorePassword, connectTimeout, socketTimeout,
 				connectionRequestTimeout, fhirServerBasicAuthUsername, fhirServerBasicAuthPassword,
-				fhirServerBearerToken, fhirServerBase, proxyUrl, proxyUsername, proxyPassword, hapiClientVerbose,
-				fhirContext, localIdentifierValue, dataLogger);
+				fhirServerBearerToken, fhirServerOAuth2TokenProvider, fhirServerBase, proxyUrl, proxyUsername,
+				proxyPassword, hapiClientVerbose, fhirContext, localIdentifierValue, dataLogger);
 	}
 
 	private KeyStore readTrustStore(Path trustPath)
