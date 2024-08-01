@@ -95,8 +95,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	public String getInfo()
 	{
 		return "[issuerUrl: " + issuerUrl + ", clientId: " + clientId + ", clientSecret: "
-				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath.toString()
-				+ ", proxyUrl: " + proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
+				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath + ", proxyUrl: "
+				+ proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
 				+ (proxyPassword != null ? "***" : "null") + "]";
 	}
 
