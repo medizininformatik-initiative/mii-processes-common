@@ -80,7 +80,7 @@ public class MimeTypeHelperTest
 
 	private MimeTypeHelper createMimetypeHelper()
 	{
-		Detector detector = CombinedDetector.fromDefaultWithNdJson();
+		Detector detector = CombinedDetectors.fromDefaultWithNdJson();
 		FhirContext context = FhirContext.forR4();
 
 		return new MimeTypeHelper(detector, context);

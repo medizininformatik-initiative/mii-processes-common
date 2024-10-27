@@ -11,19 +11,19 @@ import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 
-public class CombinedDetector implements Detector
+public class CombinedDetectors implements Detector
 {
-	public static CombinedDetector fromDefaultWithNdJson()
+	public static CombinedDetectors fromDefaultWithNdJson()
 	{
 		Detector defaultDetector = TikaConfig.getDefaultConfig().getDetector();
 		NdJsonDetector ndJsonDetector = new NdJsonDetector(defaultDetector);
 
-		return new CombinedDetector(List.of(defaultDetector, ndJsonDetector));
+		return new CombinedDetectors(List.of(defaultDetector, ndJsonDetector));
 	}
 
 	private final List<Detector> detectors = new ArrayList<>();
 
-	public CombinedDetector(List<Detector> detectors)
+	public CombinedDetectors(List<Detector> detectors)
 	{
 		if (detectors != null && !detectors.isEmpty())
 			this.detectors.addAll(detectors);

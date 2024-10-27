@@ -24,12 +24,12 @@ public class MimeTypeHelper implements InitializingBean
 
 	/**
 	 * @deprecated use {@link MimeTypeHelper(Detector, FhirContext)} instead. Uses
-	 *             {@link CombinedDetector#fromDefaultWithNdJson()}.
+	 *             {@link CombinedDetectors#fromDefaultWithNdJson()}.
 	 */
 	@Deprecated
 	public MimeTypeHelper(FhirContext fhirContext)
 	{
-		this(CombinedDetector.fromDefaultWithNdJson(), fhirContext);
+		this(CombinedDetectors.fromDefaultWithNdJson(), fhirContext);
 	}
 
 	public MimeTypeHelper(Detector detector, FhirContext fhirContext)
