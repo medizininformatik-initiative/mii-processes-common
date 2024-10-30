@@ -1,5 +1,6 @@
 package de.medizininformatik_initiative.processes.common.mimetype;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,31 +33,26 @@ public class CombinedDetectors implements Detector
 			throw new RuntimeException("no detectors supplied");
 	}
 
-
-	/**
-	 * @param inputStream
-	 *            should be checked for declared and actual mimetype, not <code>null</code>
-	 * @param metadata
-	 *            providing additional information for check, not <code>null</code>
-	 * @return the first mimetype not equal to <code>text/plain</code>, <code>text/plain</code> if no other mimetype is
-	 *         detected, <code>application/x-empty</code> if no mimetype could be detected
-	 */
 	@Override
-	public MediaType detect(InputStream inputStream, Metadata metadata)
+	public MediaType detect(InputStream inputStream, Metadata metadata) throws IOException
 	{
-		List<MediaType> detectedMediaTypesNotEmpty = detectors.stream().map(doDetect(inputStream, metadata))
-				.filter(notEqualsMediaType(MediaType.EMPTY)).toList();
+		// Each detector is responsible to mark and reset the inputstream them self
+		// and to check if the inputstream is null
 
-		List<MediaType> detectedMediaTypesNotEmptyOrPlainText = detectedMediaTypesNotEmpty.stream()
-				.filter(notEqualsMediaType(MediaType.TEXT_PLAIN)).toList();
+		List<MediaType> detectedMediaTypesNotEmptyNotOctetStream = detectors.stream()
+				.map(doDetect(inputStream, metadata)).filter(notEqualsMediaType(MediaType.EMPTY))
+				.filter(notEqualsMediaType(MediaType.OCTET_STREAM)).toList();
 
-		if (!detectedMediaTypesNotEmptyOrPlainText.isEmpty())
-			return detectedMediaTypesNotEmptyOrPlainText.get(0);
+		List<MediaType> detectedMediaTypesNotEmptyNotOctetStreamNotPlainText = detectedMediaTypesNotEmptyNotOctetStream
+				.stream().filter(notEqualsMediaType(MediaType.TEXT_PLAIN)).toList();
 
-		if (!detectedMediaTypesNotEmpty.isEmpty())
-			return detectedMediaTypesNotEmpty.get(0);
+		if (!detectedMediaTypesNotEmptyNotOctetStreamNotPlainText.isEmpty())
+			return detectedMediaTypesNotEmptyNotOctetStreamNotPlainText.get(0);
 
-		return MediaType.EMPTY;
+		if (!detectedMediaTypesNotEmptyNotOctetStream.isEmpty())
+			return detectedMediaTypesNotEmptyNotOctetStream.get(0);
+
+		return MediaType.OCTET_STREAM;
 	}
 
 	private Function<Detector, MediaType> doDetect(InputStream input, Metadata metadata)
