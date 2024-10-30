@@ -43,8 +43,8 @@ public class CombinedDetectors implements Detector
 				.map(doDetect(inputStream, metadata)).filter(notEqualsMediaType(MediaType.EMPTY))
 				.filter(notEqualsMediaType(MediaType.OCTET_STREAM)).toList();
 
-		List<MediaType> detectedMediaTypesNotEmptyNotOctetStreamNotPlainText = detectedMediaTypesNotEmptyNotOctetStream.stream()
-				.filter(notEqualsMediaType(MediaType.TEXT_PLAIN)).toList();
+		List<MediaType> detectedMediaTypesNotEmptyNotOctetStreamNotPlainText = detectedMediaTypesNotEmptyNotOctetStream
+				.stream().filter(notEqualsMediaType(MediaType.TEXT_PLAIN)).toList();
 
 		if (!detectedMediaTypesNotEmptyNotOctetStreamNotPlainText.isEmpty())
 			return detectedMediaTypesNotEmptyNotOctetStreamNotPlainText.get(0);
@@ -57,7 +57,8 @@ public class CombinedDetectors implements Detector
 
 	private Function<Detector, MediaType> doDetect(InputStream input, Metadata metadata)
 	{
-		return (detector) -> {
+		return (detector) ->
+		{
 			try
 			{
 				return detector.detect(input, metadata);
