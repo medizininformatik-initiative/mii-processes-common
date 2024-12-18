@@ -45,11 +45,11 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 			logger.debug("Async search for URL '{}' started", url);
 			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-			int currentPollingInterval = initialPollingIntervalMilliseconds;
+			int currentPollingIntervalMilliseconds = initialPollingIntervalMilliseconds;
 			while (response.statusCode() == HttpURLConnection.HTTP_ACCEPTED)
 			{
-				response = pollSearchResultAfterDelay(client, currentPollingInterval, response, url);
-				currentPollingInterval = initialPollingIntervalMilliseconds * 10;
+				response = pollSearchResultAfterDelay(client, currentPollingIntervalMilliseconds, response, url);
+				currentPollingIntervalMilliseconds = currentPollingIntervalMilliseconds * 10;
 			}
 
 			if (response.statusCode() == HttpURLConnection.HTTP_OK)
