@@ -36,8 +36,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	private static final String OIDC_DISCOVERY_PATH = "/.well-known/openid-configuration";
 
 	private final String issuerUrl;
-
 	private final String discoveryPath;
+
 	private final String clientId;
 	private final String clientSecret;
 
@@ -50,6 +50,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	private final String proxyUsername;
 	private final String proxyPassword;
 
+	private final boolean lenientValidation;
+
 	private final ObjectMapper objectMapper;
 
 	static
@@ -59,25 +61,26 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 
 	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
 			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
-			String proxyPassword)
+			String proxyPassword, boolean lenientValidation)
 	{
 		this(issuerUrl, discoveryPath, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath, proxyUrl,
-				proxyUsername, proxyPassword, new ObjectMapper());
+				proxyUsername, proxyPassword, lenientValidation, new ObjectMapper());
 	}
 
 	/**
 	 * Uses {@link #OIDC_DISCOVERY_PATH} for discovery of token endpoint
 	 */
 	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
-			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword)
+			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword,
+			boolean lenientValidation)
 	{
 		this(issuerUrl, OIDC_DISCOVERY_PATH, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath,
-				proxyUrl, proxyUsername, proxyPassword, new ObjectMapper());
+				proxyUrl, proxyUsername, proxyPassword, lenientValidation, new ObjectMapper());
 	}
 
 	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
 			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
-			String proxyPassword, ObjectMapper objectMapper)
+			String proxyPassword, boolean lenientValidation, ObjectMapper objectMapper)
 	{
 		this.issuerUrl = issuerUrl;
 		this.discoveryPath = discoveryPath;
@@ -89,6 +92,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		this.proxyUrl = proxyUrl;
 		this.proxyUsername = proxyUsername;
 		this.proxyPassword = proxyPassword;
+		this.lenientValidation = lenientValidation;
 		this.objectMapper = objectMapper;
 	}
 
@@ -205,7 +209,11 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
 		if (response.statusCode() == HttpURLConnection.HTTP_OK)
-			return objectMapper.readValue(response.body(), OidcConfiguration.class);
+		{
+			OidcConfiguration configuration = objectMapper.readValue(response.body(), OidcConfiguration.class);
+			configuration.validate(issuerUrl, lenientValidation);
+			return configuration;
+		}
 		else
 			throw new RuntimeException("Could not execute discovery, status code: " + response.statusCode());
 	}
