@@ -50,7 +50,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	private final String proxyUsername;
 	private final String proxyPassword;
 
-	private final boolean lenientValidation;
+	private final boolean discoveryValidationLenient;
 
 	private final ObjectMapper objectMapper;
 
@@ -61,10 +61,10 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 
 	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
 			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
-			String proxyPassword, boolean lenientValidation)
+			String proxyPassword, boolean discoveryValidationLenient)
 	{
 		this(issuerUrl, discoveryPath, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath, proxyUrl,
-				proxyUsername, proxyPassword, lenientValidation, new ObjectMapper());
+				proxyUsername, proxyPassword, discoveryValidationLenient, new ObjectMapper());
 	}
 
 	/**
@@ -72,15 +72,15 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	 */
 	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
 			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword,
-			boolean lenientValidation)
+			boolean discoveryValidationLenient)
 	{
 		this(issuerUrl, OIDC_DISCOVERY_PATH, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath,
-				proxyUrl, proxyUsername, proxyPassword, lenientValidation, new ObjectMapper());
+				proxyUrl, proxyUsername, proxyPassword, discoveryValidationLenient, new ObjectMapper());
 	}
 
 	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
 			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
-			String proxyPassword, boolean lenientValidation, ObjectMapper objectMapper)
+			String proxyPassword, boolean discoveryValidationLenient, ObjectMapper objectMapper)
 	{
 		this.issuerUrl = issuerUrl;
 		this.discoveryPath = discoveryPath;
@@ -92,7 +92,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		this.proxyUrl = proxyUrl;
 		this.proxyUsername = proxyUsername;
 		this.proxyPassword = proxyPassword;
-		this.lenientValidation = lenientValidation;
+		this.discoveryValidationLenient = discoveryValidationLenient;
 		this.objectMapper = objectMapper;
 	}
 
@@ -118,7 +118,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		return "[issuerUrl: " + issuerUrl + ", discoveryPath: " + discoveryPath + ", clientId: " + clientId
 				+ ", clientSecret: " + (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath
 				+ ", proxyUrl: " + proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
-				+ (proxyPassword != null ? "***" : "null") + "]";
+				+ (proxyPassword != null ? "***" : "null") + ", discoveryValidationLenient: "
+				+ discoveryValidationLenient + "]";
 	}
 
 	@Override
@@ -211,7 +212,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		if (response.statusCode() == HttpURLConnection.HTTP_OK)
 		{
 			OidcConfiguration configuration = objectMapper.readValue(response.body(), OidcConfiguration.class);
-			configuration.validate(issuerUrl, lenientValidation);
+			configuration.validate(issuerUrl, discoveryValidationLenient);
 			return configuration;
 		}
 		else
