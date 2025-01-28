@@ -1,5 +1,8 @@
 package de.medizininformatik_initiative.processes.common.crypto;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -14,7 +17,6 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 
 public class RsaAesGcmUtil
@@ -24,24 +26,42 @@ public class RsaAesGcmUtil
 	private static final int ENCRYPTED_AES_KEY_LENGTH = 512;
 
 	public static byte[] encrypt(PublicKey publicKey, byte[] data, String sendingOrganizationIdentifier,
-			String receivingOrganizationIdentifier)
-			throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
-			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, ShortBufferException
+			String receivingOrganizationIdentifier) throws NoSuchAlgorithmException, InvalidKeyException,
+			NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException
 	{
 		SecretKey aesKey = AesGcmUtil.generateAES256Key();
 
 		byte[] aad = getAad(sendingOrganizationIdentifier, receivingOrganizationIdentifier);
 		byte[] encryptedAesKey = encryptRsa(aesKey, publicKey);
-		byte[] encryptedData = AesGcmUtil.encrypt(data, aad, aesKey);
 
 		if (encryptedAesKey.length != ENCRYPTED_AES_KEY_LENGTH)
 			throw new IllegalStateException("Encrypted AES key length " + ENCRYPTED_AES_KEY_LENGTH + " expected");
+
+		byte[] encryptedData = AesGcmUtil.encryptByte(data, aad, aesKey);
 
 		byte[] output = new byte[encryptedAesKey.length + encryptedData.length];
 		System.arraycopy(encryptedAesKey, 0, output, 0, encryptedAesKey.length);
 		System.arraycopy(encryptedData, 0, output, encryptedAesKey.length, encryptedData.length);
 
 		return output;
+	}
+
+	public static InputStream encrypt(PublicKey publicKey, InputStream data, String sendingOrganizationIdentifier,
+			String receivingOrganizationIdentifier) throws NoSuchAlgorithmException, InvalidKeyException,
+			NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException
+	{
+		SecretKey aesKey = AesGcmUtil.generateAES256Key();
+
+		byte[] aad = getAad(sendingOrganizationIdentifier, receivingOrganizationIdentifier);
+		byte[] encryptedAesKey = encryptRsa(aesKey, publicKey);
+		InputStream encryptedAesKeyStream = new ByteArrayInputStream(encryptedAesKey);
+
+		if (encryptedAesKey.length != ENCRYPTED_AES_KEY_LENGTH)
+			throw new IllegalStateException("Encrypted AES key length " + ENCRYPTED_AES_KEY_LENGTH + " expected");
+
+		InputStream encryptedDataStream = AesGcmUtil.encryptStream(data, aad, aesKey);
+
+		return new SequenceInputStream(encryptedAesKeyStream, encryptedDataStream);
 	}
 
 	public static byte[] decrypt(PrivateKey privateKey, byte[] encrypted, String sendingOrganizationIdentifier,
