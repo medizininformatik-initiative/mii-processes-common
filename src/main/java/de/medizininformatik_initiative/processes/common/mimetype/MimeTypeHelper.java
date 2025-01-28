@@ -1,5 +1,7 @@
 package de.medizininformatik_initiative.processes.common.mimetype;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -46,12 +48,12 @@ public class MimeTypeHelper implements InitializingBean
 	}
 
 	/**
-	 * Detects the mime-type of the provided data and validates if the detected mime-type equals the declared mime-type.
-	 * Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base mime-types do
-	 * not match.
+	 * Detects the mime-type of the provided byte array and validates if the detected mime-type equals the declared
+	 * mime-type. Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base
+	 * mime-types do not match.
 	 *
 	 * @param data
-	 *            of which the mime-type should be detected
+	 *            byte array of which the mime-type should be detected
 	 * @param declared
 	 *            the declared mime-type of the data
 	 * @throws RuntimeException
@@ -59,12 +61,29 @@ public class MimeTypeHelper implements InitializingBean
 	 */
 	public void validate(byte[] data, String declared)
 	{
+		validate(new ByteArrayInputStream(data), declared);
+	}
+
+	/**
+	 * Detects the mime-type of the provided input stream and validates if the detected mime-type equals the declared
+	 * mime-type. Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base
+	 * mime-types do not match.
+	 *
+	 * @param stream
+	 *            input stream of which the mime-type should be detected
+	 * @param declared
+	 *            the declared mime-type of the data
+	 * @throws RuntimeException
+	 *             if the detected and the declared base mime-type do not match
+	 */
+	public void validate(InputStream stream, String declared)
+	{
 		MediaType declaredMimeType = MediaType.parse(declared);
 		MediaType detectedMimeType = MediaType.EMPTY;
 
 		try
 		{
-			TikaInputStream input = TikaInputStream.get(data);
+			TikaInputStream input = TikaInputStream.get(stream);
 
 			// Gives only a hint to the possible mime-type, this is needed because text/csv and application/json
 			// cannot be detected without any hint and would resolve to text/plain.
