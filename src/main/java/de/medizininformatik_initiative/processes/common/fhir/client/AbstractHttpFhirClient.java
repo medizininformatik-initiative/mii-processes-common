@@ -260,7 +260,7 @@ public abstract class AbstractHttpFhirClient implements FhirClient
 
 	private void configureProxyAuthentication(HttpRequest.Builder builder)
 	{
-		if (proxyUrl != null && proxyUsername != null & proxyPassword != null)
+		if (proxyUrl != null && proxyUsername != null && proxyPassword != null)
 		{
 			String credentials = encodeCredentials(proxyUsername, proxyPassword);
 			builder.header("Proxy-Authorization", "Basic " + credentials);
