@@ -1,6 +1,7 @@
 package de.medizininformatik_initiative.processes.common.crypto;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.security.InvalidAlgorithmParameterException;
@@ -64,7 +65,7 @@ public class AesGcmUtil
 		return output;
 	}
 
-	public static InputStream encryptStream(InputStream message, byte[] aadTag, SecretKey key)
+	public static InputStream encrypt(InputStream message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
 			InvalidAlgorithmParameterException
 	{
@@ -83,17 +84,38 @@ public class AesGcmUtil
 		return new SequenceInputStream(ivStream, encryptedStream);
 	}
 
-	public static byte[] decrypt(byte[] encrypted, byte[] aadTag, SecretKey key)
+	public static byte[] decrypt(byte[] message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
 			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException
 	{
 		SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), AES);
-		GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, encrypted, 0, GCM_IV_LENGTH);
+		GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, message, 0, GCM_IV_LENGTH);
 
 		Cipher cipher = Cipher.getInstance(AES_MODE_PADDING);
 		cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 		cipher.updateAAD(aadTag);
 
-		return cipher.doFinal(encrypted, GCM_IV_LENGTH, encrypted.length - GCM_IV_LENGTH);
+		return cipher.doFinal(message, GCM_IV_LENGTH, message.length - GCM_IV_LENGTH);
+	}
+
+	public static InputStream decrypt(InputStream message, byte[] aadTag, SecretKey key)
+			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, IOException
+	{
+		SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), AES);
+
+		byte[] iv = new byte[GCM_IV_LENGTH];
+		int bytesRead = message.read(iv);
+
+		if (bytesRead != GCM_IV_LENGTH)
+			throw new IOException("Failed to read the complete encrypted AES key");
+
+		GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+
+		Cipher cipher = Cipher.getInstance(AES_MODE_PADDING);
+		cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
+		cipher.updateAAD(aadTag);
+
+		return new CipherInputStream(message, cipher);
 	}
 }
