@@ -43,7 +43,7 @@ public class AesGcmUtil
 		return bytes;
 	}
 
-	public static byte[] encryptByte(byte[] message, byte[] aadTag, SecretKey key)
+	public static byte[] encrypt(byte[] message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
 			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException
 	{
