@@ -28,6 +28,8 @@ public class FhirClientFactory implements InitializingBean
 {
 	private static final Logger logger = LoggerFactory.getLogger(FhirClientFactory.class);
 
+	public static final int DEFAULT_INITIAL_POLLING_INTERVAL_MILLISECONDS = 100;
+
 	private final Path trustStorePath;
 	private final Path certificatePath;
 	private final Path privateKeyPath;
@@ -57,12 +59,16 @@ public class FhirClientFactory implements InitializingBean
 
 	private final DataLogger dataLogger;
 
+	private final boolean connectionTestAsyncClientEnabled;
+	private final boolean connectionTestBinaryStreamClientEnabled;
+
 	public FhirClientFactory(Path trustStorePath, Path certificatePath, Path privateKeyPath, char[] privateKeyPassword,
 			int connectTimeout, int socketTimeout, int connectionRequestTimeout, String fhirServerBase,
 			String fhirServerBasicAuthUsername, String fhirServerBasicAuthPassword, String fhirServerBearerToken,
 			TokenProvider fhirServerOAuth2TokenProvider, String proxyUrl, String proxyUsername, String proxyPassword,
 			boolean hapiClientVerbose, int initialPollingIntervalMilliseconds, FhirContext fhirContext,
-			String localIdentifierValue, DataLogger dataLogger)
+			String localIdentifierValue, DataLogger dataLogger, boolean connectionTestAsyncClientEnabled,
+			boolean connectionTestBinaryStreamClientEnabled)
 	{
 		this.trustStorePath = trustStorePath;
 		this.certificatePath = certificatePath;
@@ -92,6 +98,9 @@ public class FhirClientFactory implements InitializingBean
 		this.localIdentifierValue = localIdentifierValue;
 
 		this.dataLogger = dataLogger;
+
+		this.connectionTestAsyncClientEnabled = connectionTestAsyncClientEnabled;
+		this.connectionTestBinaryStreamClientEnabled = connectionTestBinaryStreamClientEnabled;
 	}
 
 	@Override
@@ -118,20 +127,27 @@ public class FhirClientFactory implements InitializingBean
 		{
 			logger.info(
 					"Testing connection to FHIR server with {trustStorePath: {}, certificatePath: {}, privateKeyPath: {}, privateKeyPassword: {},"
-							+ " basicAuthUsername: {}, basicAuthPassword: {}, bearerToken: {}, oauth2Provider: {}, serverBase: {}, proxyUrl: {}, proxyUsername: {}, proxyPassword: {}}",
+							+ " basicAuthUsername: {}, basicAuthPassword: {}, bearerToken: {}, oauth2Provider: {}, serverBase: {}, proxyUrl: {},"
+							+ " proxyUsername: {}, proxyPassword: {}, asyncClientInitialPollingIntervalMilliseconds: {},"
+							+ " connectionTestAsyncClientEnabled: {}, connectionTestBinaryStreamClientEnabled: {}}",
 					trustStorePath, certificatePath, privateKeyPath, privateKeyPassword != null ? "***" : "null",
 					fhirServerBasicAuthUsername, fhirServerBasicAuthPassword != null ? "***" : "null",
 					fhirServerBearerToken != null ? "***" : "null",
 					fhirServerOAuth2TokenProvider != null ? fhirServerOAuth2TokenProvider.getInfo() : "null",
-					fhirServerBase, proxyUrl, proxyUsername, proxyPassword != null ? "***" : "null");
+					fhirServerBase, proxyUrl, proxyUsername, proxyPassword != null ? "***" : "null",
+					initialPollingIntervalMilliseconds, connectionTestAsyncClientEnabled,
+					connectionTestBinaryStreamClientEnabled);
 
 			getStandardFhirClient().testConnection();
-			getAsyncFhirClient().testConnection();
-			getBinaryStreamFhirClient().testConnection();
+
+			if (connectionTestAsyncClientEnabled)
+				getAsyncFhirClient().testConnection();
+			if (connectionTestBinaryStreamClientEnabled)
+				getBinaryStreamFhirClient().testConnection();
 		}
-		catch (Exception e)
+		catch (Exception exception)
 		{
-			logger.error("Error while testing connection to FHIR server", e);
+			logger.error("Error while testing connection to FHIR server", exception);
 		}
 	}
 

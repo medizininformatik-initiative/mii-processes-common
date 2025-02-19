@@ -1,8 +1,10 @@
 package de.medizininformatik_initiative.processes.common.fhir.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.KeyStore;
@@ -43,40 +45,51 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 		try
 		{
 			logger.debug("Async search for URL '{}' started", url);
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
 			int currentPollingIntervalMilliseconds = initialPollingIntervalMilliseconds;
 			while (response.statusCode() == HttpURLConnection.HTTP_ACCEPTED)
 			{
-				response = pollSearchResultAfterDelay(client, currentPollingIntervalMilliseconds, response, url);
-				currentPollingIntervalMilliseconds = currentPollingIntervalMilliseconds * 10;
+				response.body().close();
+				response = pollSearchResultAfterDelay(client, currentPollingIntervalMilliseconds, response.headers(),
+						url);
+				currentPollingIntervalMilliseconds = currentPollingIntervalMilliseconds * 2;
 			}
 
 			if (response.statusCode() == HttpURLConnection.HTTP_OK)
-				return (Resource) getFhirContext().newJsonParser().parseResource(response.body());
+			{
+				try (InputStream body = response.body())
+				{
+					return (Resource) getFhirContext().newJsonParser().parseResource(body);
+				}
+			}
 			else
+			{
+				response.body().close();
 				throw new RuntimeException(
 						"Request for URL '" + url + "' failed - status code: " + response.statusCode());
+			}
 		}
 		catch (Exception exception)
 		{
-			throw new RuntimeException("Async search for URL '" + url + "' failed", exception);
+			throw new RuntimeException("Async search for URL '" + url + "' failed - " + exception.getMessage(),
+					exception);
 		}
 	}
 
-	private HttpResponse<String> pollSearchResultAfterDelay(HttpClient client, int pollingInterval,
-			HttpResponse<String> response, String url) throws IOException, InterruptedException
+	private HttpResponse<InputStream> pollSearchResultAfterDelay(HttpClient client, int pollingInterval,
+			HttpHeaders headers, String url) throws IOException, InterruptedException
 	{
 		logger.debug("Async search for '{}' in-progress, checking result in {} milliseconds", url,
 				initialPollingIntervalMilliseconds);
 		Thread.sleep(pollingInterval);
 
-		String location = response.headers().firstValue("Content-Location")
+		String location = headers.firstValue("Content-Location")
 				.orElseThrow(() -> new RuntimeException("No Content-Location header returned"));
 		String locationPath = location.substring(location.indexOf("__async-status"));
 
 		HttpRequest request = createBaseRequest(locationPath).GET().build();
 
-		return client.send(request, HttpResponse.BodyHandlers.ofString());
+		return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
 	}
 }

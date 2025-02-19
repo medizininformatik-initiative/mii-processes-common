@@ -108,7 +108,7 @@ public class AesGcmUtil
 		int bytesRead = message.read(iv);
 
 		if (bytesRead != GCM_IV_LENGTH)
-			throw new IOException("Failed to read the complete encrypted AES key");
+			throw new IOException("Failed to read the complete AES initialization vector");
 
 		GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
 

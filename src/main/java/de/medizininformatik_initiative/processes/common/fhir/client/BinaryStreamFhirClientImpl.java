@@ -54,8 +54,11 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 			if (response.statusCode() == HttpURLConnection.HTTP_OK)
 				return response.body();
 			else
+			{
+				response.body().close();
 				throw new RuntimeException("Reading Binary with id '" + unqualifiedId
 						+ "' as stream failed - status code: " + response.statusCode());
+			}
 		}
 		catch (Exception exception)
 		{
