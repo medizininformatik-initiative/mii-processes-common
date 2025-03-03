@@ -35,13 +35,16 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 	}
 
 	@Override
-	public InputStream read(IdType idType, String mimeType)
+	public InputStream read(IdType idType, String mimeType, boolean useHapiDatabaseBlobStorageOperation)
 	{
 		if (!ResourceType.Binary.name().equals(idType.getResourceType()))
 			throw new UnsupportedOperationException(
 					"Expected resource type 'Binary' but found resource type '" + idType.getResourceType() + "'");
 
 		String unqualifiedId = idType.toUnqualified().getValue();
+
+		if (useHapiDatabaseBlobStorageOperation)
+			unqualifiedId = unqualifiedId + (unqualifiedId.endsWith("/") ? "" : "/") + "$binary-access-read";
 
 		HttpClient client = createClient();
 		HttpRequest request = createBaseRequest(unqualifiedId, Map.of("Accept", mimeType)).GET().build();
@@ -62,7 +65,9 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 		}
 		catch (Exception exception)
 		{
-			throw new RuntimeException("Reading Binary with id '" + unqualifiedId + "' as stream failed", exception);
+			throw new RuntimeException(
+					"Reading Binary with id '" + unqualifiedId + "' as stream failed - " + exception.getMessage(),
+					exception);
 		}
 	}
 
