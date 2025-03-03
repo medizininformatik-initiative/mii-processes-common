@@ -35,7 +35,7 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 	}
 
 	@Override
-	public InputStream read(IdType idType, String mimeType, boolean useHapiDatabaseBlobStorageOperation)
+	public InputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation)
 	{
 		if (!ResourceType.Binary.name().equals(idType.getResourceType()))
 			throw new UnsupportedOperationException(
@@ -43,7 +43,7 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 
 		String unqualifiedId = idType.toUnqualified().getValue();
 
-		if (useHapiDatabaseBlobStorageOperation)
+		if (useHapiBlobStorageOperation)
 			unqualifiedId = unqualifiedId + (unqualifiedId.endsWith("/") ? "" : "/") + "$binary-access-read";
 
 		HttpClient client = createClient();

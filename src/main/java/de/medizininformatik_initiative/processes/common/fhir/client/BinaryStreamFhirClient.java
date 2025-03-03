@@ -32,14 +32,14 @@ public interface BinaryStreamFhirClient extends FhirClient
 	 * "https://github.com/hapifhir/hapi-fhir-jpaserver-starter/issues/179">https://github.com/hapifhir/hapi-fhir-jpaserver-starter/issues/179</a>
 	 * <p>
 	 * Works as {@link #read(IdType, String)}, except it additionally uses the <code>$binary-access-read</code>
-	 * operation if parameter <code>useHapiDatabaseBlobStorageOperation</code> is set to <code>true</code>, e.g. GET
+	 * operation if parameter <code>useHapiBlobStorageOperation</code> is set to <code>true</code>, e.g. GET
 	 * http://foo.bar/fhir/Binary/1/$binary-access-read.
 	 *
-	 * @param useHapiDatabaseBlobStorageOperation
+	 * @param useHapiBlobStorageOperation
 	 *            set to <code>true</code> if HAPI uses an external Binary storage solution by setting the ENV variable
 	 *            <code>HAPI_FHIR_BINARY_STORAGE_ENABLED</code>
 	 */
-	InputStream read(IdType idType, String mimeType, boolean useHapiDatabaseBlobStorageOperation);
+	InputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation);
 
 	/**
 	 * Creating Binary resource content.
