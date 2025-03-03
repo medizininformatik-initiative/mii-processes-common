@@ -86,7 +86,12 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 
 		String location = headers.firstValue("Content-Location")
 				.orElseThrow(() -> new RuntimeException("No Content-Location header returned"));
-		String locationPath = location.substring(location.indexOf("__async-status"));
+
+		if (!location.startsWith(getFhirBaseUrl()))
+			throw new RuntimeException("Content-Location (" + location + ") does not start with FHIR server baseUrl ("
+					+ getFhirBaseUrl() + ")");
+
+		String locationPath = location.substring(getFhirBaseUrl().length());
 
 		HttpRequest request = createBaseRequest(locationPath).GET().build();
 
