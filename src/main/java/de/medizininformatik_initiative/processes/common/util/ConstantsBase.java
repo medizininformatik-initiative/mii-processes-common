@@ -19,6 +19,7 @@ public interface ConstantsBase
 	String CODESYSTEM_DATA_SET_STATUS = "http://medizininformatik-initiative.de/fhir/CodeSystem/data-set-status";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_NOT_ALLOWED = "not-allowed";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_NOT_REACHABLE = "not-reachable";
+	String CODESYSTEM_DATA_SET_STATUS_VALUE_NOT_SENT = "not-sent";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_RECEIPT_MISSING = "receipt-missing";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_RECEIPT_OK = "receipt-ok";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_RECEIPT_ERROR = "receipt-error";
