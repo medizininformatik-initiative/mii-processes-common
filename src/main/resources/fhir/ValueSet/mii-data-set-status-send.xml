@@ -31,6 +31,10 @@
 				<display value="Not reachable" />
 			</concept>
 			<concept>
+				<code value="not-sent" />
+				<display value="Not sent" />
+			</concept>
+			<concept>
 				<code value="receipt-missing" />
 				<display value="Receipt missing" />
 			</concept>

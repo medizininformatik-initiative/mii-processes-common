@@ -1,5 +1,6 @@
 package de.medizininformatik_initiative.processes.common.mimetype;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -15,39 +16,75 @@ import ca.uhn.fhir.context.FhirContext;
 public class MimeTypeHelperTest
 {
 	@Test
-	public void testAttachmentBundle()
+	public void testAttachmentBundleBytes()
 	{
 		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_Bundle.xml");
-		testResources(resources);
+		testResourcesBytes(resources);
 	}
 
 	@Test
-	public void testAttachmentCsv()
+	public void testAttachmentBundleStream()
+	{
+		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_Bundle.xml");
+		testResourcesStream(resources);
+	}
+
+	@Test
+	public void testAttachmentCsvBytes()
 	{
 		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_CSV.xml");
-		testResources(resources);
+		testResourcesBytes(resources);
 	}
 
 	@Test
-	public void testAttachmentEvaluation()
+	public void testAttachmentCsvStream()
+	{
+		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_CSV.xml");
+		testResourcesStream(resources);
+	}
+
+	@Test
+	public void testAttachmentEvaluationBytes()
 	{
 		List<Resource> resources = getResourceNotDocumentReferenceFromPath(
 				"/fhir/Bundle/DicFhirStore_Demo_Evaluation.xml");
-		testResources(resources);
+		testResourcesBytes(resources);
 	}
 
 	@Test
-	public void testAttachmentTorch()
+	public void testAttachmentEvaluationStream()
+	{
+		List<Resource> resources = getResourceNotDocumentReferenceFromPath(
+				"/fhir/Bundle/DicFhirStore_Demo_Evaluation.xml");
+		testResourcesStream(resources);
+	}
+
+	@Test
+	public void testAttachmentTorchBytes()
 	{
 		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_TORCH.xml");
-		testResources(resources);
+		testResourcesBytes(resources);
 	}
 
 	@Test
-	public void testAttachmentZip()
+	public void testAttachmentTorchStream()
+	{
+		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_TORCH.xml");
+		testResourcesStream(resources);
+	}
+
+	@Test
+	public void testAttachmentZipBytes()
 	{
 		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_ZIP.xml");
-		testResources(resources);
+		testResourcesBytes(resources);
+	}
+
+	@Test
+	public void testAttachmentZipStream()
+	{
+		List<Resource> resources = getResourceNotDocumentReferenceFromPath("/fhir/Bundle/DicFhirStore_Demo_ZIP.xml");
+		testResourcesStream(resources);
 	}
 
 	private List<Resource> getResourceNotDocumentReferenceFromPath(String pathToBundle)
@@ -65,7 +102,7 @@ public class MimeTypeHelperTest
 		}
 	}
 
-	private void testResources(List<Resource> resources)
+	private void testResourcesBytes(List<Resource> resources)
 	{
 		MimeTypeHelper mimeTypeHelper = createMimetypeHelper();
 
@@ -75,6 +112,20 @@ public class MimeTypeHelperTest
 			String mimeType = mimeTypeHelper.getMimeType(resource);
 
 			mimeTypeHelper.validate(data, mimeType);
+		}
+	}
+
+	private void testResourcesStream(List<Resource> resources)
+	{
+		MimeTypeHelper mimeTypeHelper = createMimetypeHelper();
+
+		for (Resource resource : resources)
+		{
+			byte[] data = mimeTypeHelper.getData(resource);
+			InputStream dataStream = new ByteArrayInputStream(data);
+			String mimeType = mimeTypeHelper.getMimeType(resource);
+
+			mimeTypeHelper.validate(dataStream, mimeType);
 		}
 	}
 

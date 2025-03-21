@@ -1,13 +1,10 @@
 package de.medizininformatik_initiative.processes.common.fhir.client;
 
-import static ca.uhn.fhir.rest.api.Constants.HEADER_PREFER;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyStore;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Binary;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.DocumentReference;
@@ -30,9 +27,9 @@ import de.medizininformatik_initiative.processes.common.fhir.client.logging.Data
 import de.medizininformatik_initiative.processes.common.fhir.client.logging.HapiClientLogger;
 import de.medizininformatik_initiative.processes.common.fhir.client.token.TokenProvider;
 
-public class FhirClientImpl implements FhirClient
+public class StandardFhirClientImpl implements StandardFhirClient
 {
-	private static final Logger logger = LoggerFactory.getLogger(FhirClientImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(StandardFhirClientImpl.class);
 
 	private final IRestfulClientFactory clientFactory;
 
@@ -51,7 +48,7 @@ public class FhirClientImpl implements FhirClient
 
 	private final DataLogger dataLogger;
 
-	public FhirClientImpl(KeyStore trustStore, KeyStore keyStore, char[] keyStorePassword, int connectTimeout,
+	public StandardFhirClientImpl(KeyStore trustStore, KeyStore keyStore, char[] keyStorePassword, int connectTimeout,
 			int socketTimeout, int connectionRequestTimeout, String fhirServerBasicAuthUsername,
 			String fhirServerBasicAuthPassword, String fhirServerBearerToken,
 			TokenProvider fhirServerOAuth2TokenProvider, String fhirServerBase, String proxyUrl, String proxyUsername,
@@ -165,6 +162,12 @@ public class FhirClientImpl implements FhirClient
 	}
 
 	@Override
+	public DataLogger getDataLogger()
+	{
+		return dataLogger;
+	}
+
+	@Override
 	public IGenericClient getGenericFhirClient()
 	{
 		IGenericClient client = clientFactory.newGenericClient(fhirServerBase);
@@ -207,19 +210,22 @@ public class FhirClientImpl implements FhirClient
 	}
 
 	@Override
-	public Binary readBinary(IdType idType)
+	public MethodOutcome create(Resource resource)
 	{
-		Binary binary = getGenericFhirClient().read().resource(Binary.class).withId(idType.getIdPart()).execute();
+		dataLogger.logResource("Creating " + resource.getResourceType().name(), resource);
 
-		dataLogger.logResource("Read Binary from url '" + idType.getValue() + "'", binary);
+		MethodOutcome outcome = getGenericFhirClient().create().resource(resource).execute();
+		dataLogger.logMethodOutcome("Create MethodOutcome for " + resource.getResourceType().name(), outcome);
 
-		return binary;
+		return outcome;
 	}
 
 	@Override
 	public Resource search(String url)
 	{
-		return (Resource) getGenericFhirClient().search().byUrl(url).execute();
+		Resource resource = (Resource) getGenericFhirClient().search().byUrl(url).execute();
+		dataLogger.logResource("Search result from url '" + url + "'", resource);
+		return resource;
 	}
 
 	@Override
@@ -233,43 +239,5 @@ public class FhirClientImpl implements FhirClient
 				bundle);
 
 		return bundle;
-	}
-
-	@Override
-	public Bundle executeTransaction(Bundle bundle)
-	{
-		dataLogger.logResource("Executing Transaction Bundle", bundle);
-
-		Bundle response = getGenericFhirClient().transaction().withBundle(bundle)
-				.withAdditionalHeader(HEADER_PREFER, "handling=strict").execute();
-
-		dataLogger.logResource("Transaction Bundle Response", response);
-
-		return response;
-	}
-
-	@Override
-	public Bundle executeBatch(Bundle bundle)
-	{
-		dataLogger.logResource("Executing Batch Bundle", bundle);
-
-		Bundle response = getGenericFhirClient().transaction().withBundle(bundle)
-				.withAdditionalHeader(HEADER_PREFER, "handling=strict").execute();
-
-		dataLogger.logResource("Batch Bundle Response", response);
-
-		return response;
-	}
-
-	@Override
-	public MethodOutcome create(Resource resource)
-	{
-		dataLogger.logResource("Creating " + resource.getResourceType().name(), resource);
-
-		MethodOutcome outcome = getGenericFhirClient().create().resource(resource).execute();
-
-		dataLogger.logMethodOutcome("Create Task MethodOutcome", outcome);
-
-		return outcome;
 	}
 }
