@@ -1,5 +1,6 @@
 package de.medizininformatik_initiative.processes.common.fhir.client;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 
 import org.hl7.fhir.r4.model.IdType;
@@ -22,7 +23,7 @@ public interface BinaryStreamFhirClient extends FhirClient
 	 *            not <code>null</code>
 	 * @return not <code>null</code>
 	 */
-	default InputStream read(IdType idType, String mimeType)
+	default BufferedInputStream read(IdType idType, String mimeType)
 	{
 		return read(idType, mimeType, false);
 	}
@@ -39,7 +40,7 @@ public interface BinaryStreamFhirClient extends FhirClient
 	 *            set to <code>true</code> if HAPI uses an external Binary storage solution by setting the ENV variable
 	 *            <code>HAPI_FHIR_BINARY_STORAGE_ENABLED</code>
 	 */
-	InputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation);
+	BufferedInputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation);
 
 	/**
 	 * Creating Binary resource content.

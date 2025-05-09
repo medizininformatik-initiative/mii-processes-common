@@ -1,5 +1,6 @@
 package de.medizininformatik_initiative.processes.common.crypto;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,9 +48,10 @@ public class RsaAesGcmUtil
 		return output;
 	}
 
-	public static InputStream encrypt(PublicKey publicKey, InputStream data, String sendingOrganizationIdentifier,
-			String receivingOrganizationIdentifier) throws NoSuchAlgorithmException, InvalidKeyException,
-			NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException
+	public static BufferedInputStream encrypt(PublicKey publicKey, InputStream data,
+			String sendingOrganizationIdentifier, String receivingOrganizationIdentifier)
+			throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException,
+			BadPaddingException, InvalidAlgorithmParameterException
 	{
 		SecretKey aesKey = AesGcmUtil.generateAES256Key();
 
@@ -62,7 +64,7 @@ public class RsaAesGcmUtil
 
 		InputStream encryptedDataStream = AesGcmUtil.encrypt(data, aad, aesKey);
 
-		return new SequenceInputStream(encryptedAesKeyStream, encryptedDataStream);
+		return new BufferedInputStream(new SequenceInputStream(encryptedAesKeyStream, encryptedDataStream));
 	}
 
 	public static byte[] decrypt(PrivateKey privateKey, byte[] data, String sendingOrganizationIdentifier,
@@ -81,8 +83,8 @@ public class RsaAesGcmUtil
 		return AesGcmUtil.decrypt(encryptedData, aad, key);
 	}
 
-	public static InputStream decrypt(PrivateKey privateKey, InputStream data, String sendingOrganizationIdentifier,
-			String receivingOrganizationIdentifier)
+	public static BufferedInputStream decrypt(PrivateKey privateKey, InputStream data,
+			String sendingOrganizationIdentifier, String receivingOrganizationIdentifier)
 			throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException,
 			NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException
 	{

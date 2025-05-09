@@ -70,7 +70,7 @@ public class MimeTypeHelper implements InitializingBean
 	 * mime-types do not match.
 	 *
 	 * @param stream
-	 *            input stream of which the mime-type should be detected
+	 *            input stream of which the mime-type should be detected (must support the mark feature)
 	 * @param declared
 	 *            the declared mime-type of the data
 	 * @throws RuntimeException
@@ -78,6 +78,9 @@ public class MimeTypeHelper implements InitializingBean
 	 */
 	public void validate(InputStream stream, String declared)
 	{
+		if (!stream.markSupported())
+			throw new RuntimeException("InputStream does not support the mark feature");
+
 		MediaType declaredMimeType = MediaType.parse(declared);
 		MediaType detectedMimeType = MediaType.EMPTY;
 

@@ -1,5 +1,6 @@
 package de.medizininformatik_initiative.processes.common.fhir.client;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.http.HttpClient;
@@ -35,7 +36,7 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 	}
 
 	@Override
-	public InputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation)
+	public BufferedInputStream read(IdType idType, String mimeType, boolean useHapiBlobStorageOperation)
 	{
 		if (!ResourceType.Binary.name().equals(idType.getResourceType()))
 			throw new UnsupportedOperationException(
@@ -55,7 +56,7 @@ public class BinaryStreamFhirClientImpl extends AbstractHttpFhirClient implement
 			HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
 			if (response.statusCode() == HttpURLConnection.HTTP_OK)
-				return response.body();
+				return new BufferedInputStream(response.body());
 			else
 			{
 				response.body().close();
