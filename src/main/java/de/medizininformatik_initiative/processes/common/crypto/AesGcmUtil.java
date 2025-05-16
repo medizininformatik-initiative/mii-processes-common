@@ -100,7 +100,7 @@ public class AesGcmUtil
 
 	public static InputStream decrypt(InputStream message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, IOException
+			InvalidAlgorithmParameterException, IOException
 	{
 		SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), AES);
 
