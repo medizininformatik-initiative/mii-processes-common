@@ -1,6 +1,5 @@
 package de.medizininformatik_initiative.processes.common.crypto;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,7 +65,7 @@ public class AesGcmUtil
 		return output;
 	}
 
-	public static BufferedInputStream encrypt(InputStream message, byte[] aadTag, SecretKey key)
+	public static InputStream encrypt(InputStream message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
 			InvalidAlgorithmParameterException
 	{
@@ -82,7 +81,7 @@ public class AesGcmUtil
 
 		InputStream encryptedStream = new CipherInputStream(message, cipher);
 
-		return new BufferedInputStream(new SequenceInputStream(ivStream, encryptedStream));
+		return new SequenceInputStream(ivStream, encryptedStream);
 	}
 
 	public static byte[] decrypt(byte[] message, byte[] aadTag, SecretKey key)
@@ -99,7 +98,7 @@ public class AesGcmUtil
 		return cipher.doFinal(message, GCM_IV_LENGTH, message.length - GCM_IV_LENGTH);
 	}
 
-	public static BufferedInputStream decrypt(InputStream message, byte[] aadTag, SecretKey key)
+	public static InputStream decrypt(InputStream message, byte[] aadTag, SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
 			InvalidAlgorithmParameterException, IOException
 	{
@@ -117,6 +116,6 @@ public class AesGcmUtil
 		cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 		cipher.updateAAD(aadTag);
 
-		return new BufferedInputStream(new CipherInputStream(message, cipher));
+		return new CipherInputStream(message, cipher);
 	}
 }

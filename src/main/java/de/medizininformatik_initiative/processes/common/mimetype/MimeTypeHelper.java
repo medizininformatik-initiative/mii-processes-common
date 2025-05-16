@@ -1,6 +1,7 @@
 package de.medizininformatik_initiative.processes.common.mimetype;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -61,7 +62,14 @@ public class MimeTypeHelper implements InitializingBean
 	 */
 	public void validate(byte[] data, String declared)
 	{
-		validate(new ByteArrayInputStream(data), declared);
+		try
+		{
+			validate(new ByteArrayInputStream(data), declared);
+		}
+		catch (IOException e)
+		{
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -70,16 +78,20 @@ public class MimeTypeHelper implements InitializingBean
 	 * mime-types do not match.
 	 *
 	 * @param stream
-	 *            input stream of which the mime-type should be detected (must support the mark feature)
+	 *            input stream of which the mime-type should be detected (must support the mark feature which can be
+	 *            checked using {@link InputStream#markSupported()})
 	 * @param declared
 	 *            the declared mime-type of the data
 	 * @throws RuntimeException
 	 *             if the detected and the declared base mime-type do not match
+	 * @throws IOException
+	 *             if the provided stream does not support the mark feature which is checked using
+	 *             {@link InputStream#markSupported()})
 	 */
-	public void validate(InputStream stream, String declared)
+	public void validate(InputStream stream, String declared) throws IOException
 	{
 		if (!stream.markSupported())
-			throw new RuntimeException("InputStream does not support the mark feature");
+			throw new IOException("InputStream does not support the mark feature");
 
 		MediaType declaredMimeType = MediaType.parse(declared);
 		MediaType detectedMimeType = MediaType.EMPTY;

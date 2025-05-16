@@ -125,7 +125,14 @@ public class MimeTypeHelperTest
 			InputStream dataStream = new ByteArrayInputStream(data);
 			String mimeType = mimeTypeHelper.getMimeType(resource);
 
-			mimeTypeHelper.validate(dataStream, mimeType);
+			try
+			{
+				mimeTypeHelper.validate(dataStream, mimeType);
+			}
+			catch (IOException e)
+			{
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
