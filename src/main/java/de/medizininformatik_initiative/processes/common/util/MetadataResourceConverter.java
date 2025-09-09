@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.MetadataResource;
-import org.hl7.fhir.r4.model.Resource;
 import org.springframework.beans.factory.InitializingBean;
 
 import dev.dsf.bpe.v1.ProcessPluginApi;
@@ -67,7 +67,7 @@ public class MetadataResourceConverter implements InitializingBean
 	}
 
 	public <T extends MetadataResource> void searchAndConvertOlderResourcesIfCurrentIsNewestResource(String url,
-			Class<T> type, BiConsumer<T, List<T>> converter)
+			Class<T> type, BiPredicate<T, T> ifNeeded, BiConsumer<T, T> converter)
 	{
 		Bundle searchResult = search(type, url);
 		List<T> resourcesSortedDesc = extractResourcesAndSortDesc(searchResult, type, url);
@@ -75,13 +75,12 @@ public class MetadataResourceConverter implements InitializingBean
 		if (currentIsNewestResourceAndOlderResourcesExist(resourcesSortedDesc))
 		{
 			T currentResource = resourcesSortedDesc.get(0);
-			List<T> olderResources = resourcesSortedDesc.stream().skip(1).toList();
-
-			converter.accept(currentResource, olderResources);
+			resourcesSortedDesc.stream().skip(1).filter(oldResource -> ifNeeded.test(currentResource, oldResource))
+					.forEach(oldResource -> converter.accept(currentResource, oldResource));
 		}
 	}
 
-	private Bundle search(Class<? extends Resource> type, String url)
+	private Bundle search(Class<? extends MetadataResource> type, String url)
 	{
 		return api.getFhirWebserviceClientProvider().getLocalWebserviceClient().search(type,
 				Map.of("url", List.of(url)));
@@ -97,9 +96,6 @@ public class MetadataResourceConverter implements InitializingBean
 	private boolean currentIsNewestResourceAndOlderResourcesExist(
 			List<? extends MetadataResource> allResourcesSortedDesc)
 	{
-		if (allResourcesSortedDesc.size() <= 1)
-			return false;
-
-		return resourcesVersion.equals(allResourcesSortedDesc.get(0).getVersion());
+		return allResourcesSortedDesc.size() > 1 && resourcesVersion.equals(allResourcesSortedDesc.get(0).getVersion());
 	}
 }
