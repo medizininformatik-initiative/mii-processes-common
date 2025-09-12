@@ -32,6 +32,11 @@
 		<definition value="DMS cannot be reached" />
 	</concept>
 	<concept>
+		<code value="not-sent" />
+		<display value="Not sent" />
+		<definition value="Error before sending to DMS" />
+	</concept>
+	<concept>
 		<code value="receipt-missing" />
 		<display value="Receipt missing" />
 		<definition value="No receipt received from DMS" />

@@ -1,5 +1,8 @@
 package de.medizininformatik_initiative.processes.common.mimetype;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -46,12 +49,12 @@ public class MimeTypeHelper implements InitializingBean
 	}
 
 	/**
-	 * Detects the mime-type of the provided data and validates if the detected mime-type equals the declared mime-type.
-	 * Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base mime-types do
-	 * not match.
+	 * Detects the mime-type of the provided byte array and validates if the detected mime-type equals the declared
+	 * mime-type. Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base
+	 * mime-types do not match.
 	 *
 	 * @param data
-	 *            of which the mime-type should be detected
+	 *            byte array of which the mime-type should be detected
 	 * @param declared
 	 *            the declared mime-type of the data
 	 * @throws RuntimeException
@@ -59,12 +62,43 @@ public class MimeTypeHelper implements InitializingBean
 	 */
 	public void validate(byte[] data, String declared)
 	{
+		try
+		{
+			validate(new ByteArrayInputStream(data), declared);
+		}
+		catch (IOException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Detects the mime-type of the provided input stream and validates if the detected mime-type equals the declared
+	 * mime-type. Logs a warning if the full mime-types do not match, throws a {@link RuntimeException} if the base
+	 * mime-types do not match.
+	 *
+	 * @param stream
+	 *            input stream of which the mime-type should be detected (must support the mark feature which can be
+	 *            checked using {@link InputStream#markSupported()})
+	 * @param declared
+	 *            the declared mime-type of the data
+	 * @throws RuntimeException
+	 *             if the detected and the declared base mime-type do not match
+	 * @throws IOException
+	 *             if the provided stream does not support the mark feature which is checked using
+	 *             {@link InputStream#markSupported()})
+	 */
+	public void validate(InputStream stream, String declared) throws IOException
+	{
+		if (!stream.markSupported())
+			throw new IOException("InputStream does not support the mark feature");
+
 		MediaType declaredMimeType = MediaType.parse(declared);
 		MediaType detectedMimeType = MediaType.EMPTY;
 
 		try
 		{
-			TikaInputStream input = TikaInputStream.get(data);
+			TikaInputStream input = TikaInputStream.get(stream);
 
 			// Gives only a hint to the possible mime-type, this is needed because text/csv and application/json
 			// cannot be detected without any hint and would resolve to text/plain.

@@ -27,12 +27,17 @@ import org.springframework.beans.factory.InitializingBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.rwh.utils.crypto.io.CertificateReader;
+import jakarta.ws.rs.core.UriBuilder;
 
 public class OAuth2TokenClient implements TokenClient, InitializingBean
 {
 	private static final Logger logger = LoggerFactory.getLogger(OAuth2TokenClient.class);
 
+	private static final String OIDC_DISCOVERY_PATH = "/.well-known/openid-configuration";
+
 	private final String issuerUrl;
+	private final String discoveryPath;
+
 	private final String clientId;
 	private final String clientSecret;
 
@@ -45,6 +50,8 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	private final String proxyUsername;
 	private final String proxyPassword;
 
+	private final boolean discoveryValidationLenient;
+
 	private final ObjectMapper objectMapper;
 
 	static
@@ -52,18 +59,31 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
 	}
 
-	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
-			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword)
+	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
+			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
+			String proxyPassword, boolean discoveryValidationLenient)
 	{
-		this(issuerUrl, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath, proxyUrl, proxyUsername,
-				proxyPassword, new ObjectMapper());
+		this(issuerUrl, discoveryPath, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath, proxyUrl,
+				proxyUsername, proxyPassword, discoveryValidationLenient, new ObjectMapper());
 	}
 
+	/**
+	 * Uses {@link #OIDC_DISCOVERY_PATH} for discovery of token endpoint
+	 */
 	public OAuth2TokenClient(String issuerUrl, String clientId, String clientSecret, int connectTimeout,
 			int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername, String proxyPassword,
-			ObjectMapper objectMapper)
+			boolean discoveryValidationLenient)
+	{
+		this(issuerUrl, OIDC_DISCOVERY_PATH, clientId, clientSecret, connectTimeout, socketTimeout, trustStorePath,
+				proxyUrl, proxyUsername, proxyPassword, discoveryValidationLenient, new ObjectMapper());
+	}
+
+	public OAuth2TokenClient(String issuerUrl, String discoveryPath, String clientId, String clientSecret,
+			int connectTimeout, int socketTimeout, Path trustStorePath, String proxyUrl, String proxyUsername,
+			String proxyPassword, boolean discoveryValidationLenient, ObjectMapper objectMapper)
 	{
 		this.issuerUrl = issuerUrl;
+		this.discoveryPath = discoveryPath;
 		this.clientId = clientId;
 		this.clientSecret = clientSecret;
 		this.connectTimeout = connectTimeout;
@@ -72,6 +92,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		this.proxyUrl = proxyUrl;
 		this.proxyUsername = proxyUsername;
 		this.proxyPassword = proxyPassword;
+		this.discoveryValidationLenient = discoveryValidationLenient;
 		this.objectMapper = objectMapper;
 	}
 
@@ -88,16 +109,17 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 	@Override
 	public boolean isConfigured()
 	{
-		return issuerUrl != null && clientId != null && clientSecret != null;
+		return issuerUrl != null && discoveryPath != null && clientId != null && clientSecret != null;
 	}
 
 	@Override
 	public String getInfo()
 	{
-		return "[issuerUrl: " + issuerUrl + ", clientId: " + clientId + ", clientSecret: "
-				+ (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath + ", proxyUrl: "
-				+ proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
-				+ (proxyPassword != null ? "***" : "null") + "]";
+		return "[issuerUrl: " + issuerUrl + ", discoveryPath: " + discoveryPath + ", clientId: " + clientId
+				+ ", clientSecret: " + (clientSecret != null ? "***" : "null") + ", trustStorePath: " + trustStorePath
+				+ ", proxyUrl: " + proxyUrl + ", proxyUsername: " + proxyUsername + ", proxyPassword: "
+				+ (proxyPassword != null ? "***" : "null") + ", discoveryValidationLenient: "
+				+ discoveryValidationLenient + "]";
 	}
 
 	@Override
@@ -106,16 +128,12 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		try
 		{
 			HttpClient client = createClient();
-			HttpRequest request = createAccessTokenRequest();
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-			if (response.statusCode() == HttpURLConnection.HTTP_OK)
-				return objectMapper.readValue(response.body(), AccessToken.class);
-			else
-				throw new RuntimeException("Could not retrieve access token, status code: " + response.statusCode());
+			OidcConfiguration configuration = resolveOidcConfiguration(client);
+			return resolveAccessToken(client, configuration);
 		}
 		catch (IOException | InterruptedException exception)
 		{
+			logger.warn("Could not retrieve access token - " + exception.getMessage());
 			throw new RuntimeException(exception);
 		}
 	}
@@ -186,10 +204,51 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 		}
 	}
 
-	private HttpRequest createAccessTokenRequest()
+	private OidcConfiguration resolveOidcConfiguration(HttpClient client) throws IOException, InterruptedException
+	{
+		HttpRequest request = createDiscoveryRequest();
+		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+		if (response.statusCode() == HttpURLConnection.HTTP_OK)
+		{
+			OidcConfiguration configuration = objectMapper.readValue(response.body(), OidcConfiguration.class);
+			configuration.validate(issuerUrl, discoveryValidationLenient);
+			return configuration;
+		}
+		else
+			throw new RuntimeException("Could not execute discovery, status code: " + response.statusCode());
+	}
+
+	private HttpRequest createDiscoveryRequest()
+	{
+		URI discoveryUri = UriBuilder.fromUri(issuerUrl).path(discoveryPath).build();
+
+		HttpRequest.Builder builder = HttpRequest.newBuilder();
+		builder.uri(discoveryUri);
+		builder.timeout(Duration.ofMillis(socketTimeout));
+
+		configureAuthentication(builder);
+		configureProxyAuthentication(builder);
+
+		return builder.build();
+	}
+
+	private AccessToken resolveAccessToken(HttpClient client, OidcConfiguration configuration)
+			throws IOException, InterruptedException
+	{
+		HttpRequest request = createAccessTokenRequest(configuration);
+		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+		if (response.statusCode() == HttpURLConnection.HTTP_OK)
+			return objectMapper.readValue(response.body(), AccessToken.class);
+		else
+			throw new RuntimeException("Could not retrieve access token, status code: " + response.statusCode());
+	}
+
+	private HttpRequest createAccessTokenRequest(OidcConfiguration oidcConfiguration)
 	{
 		HttpRequest.Builder builder = HttpRequest.newBuilder();
-		builder.uri(URI.create(issuerUrl));
+		builder.uri(URI.create(oidcConfiguration.getTokenEndpoint()));
 		builder.timeout(Duration.ofMillis(socketTimeout));
 
 		configureAuthentication(builder);
@@ -212,7 +271,7 @@ public class OAuth2TokenClient implements TokenClient, InitializingBean
 
 	private void configureProxyAuthentication(HttpRequest.Builder builder)
 	{
-		if (proxyUrl != null && proxyUsername != null & proxyPassword != null)
+		if (proxyUrl != null && proxyUsername != null && proxyPassword != null)
 		{
 			// Preemptive proxy basic authentication because non preemptive proxy authentication overrides
 			// preemptive authentication for oauth2 provider, see configureAuthentication(HttpRequest.Builder builder):
