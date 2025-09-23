@@ -44,15 +44,18 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 
 		try
 		{
-			logger.debug("Async search for URL '{}' started", url);
+			logger.debug("Async search for '{}' started", url);
 			HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
+			String location = "";
 			int currentPollingIntervalMilliseconds = initialPollingIntervalMilliseconds;
 			while (response.statusCode() == HttpURLConnection.HTTP_ACCEPTED)
 			{
+				if (location.isBlank())
+					location = extractLocation(response.headers());
+
 				response.body().close();
-				response = pollSearchResultAfterDelay(client, currentPollingIntervalMilliseconds, response.headers(),
-						url);
+				response = pollSearchResultAfterDelay(client, location, currentPollingIntervalMilliseconds, url);
 				currentPollingIntervalMilliseconds = currentPollingIntervalMilliseconds * 2;
 			}
 
@@ -66,24 +69,27 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 			else
 			{
 				response.body().close();
-				throw new RuntimeException(
-						"Request for URL '" + url + "' failed - status code: " + response.statusCode());
+				throw new RuntimeException("Request for '" + url + "' failed - status code: " + response.statusCode());
 			}
 		}
 		catch (Exception exception)
 		{
-			throw new RuntimeException("Async search for URL '" + url + "' failed - " + exception.getMessage(),
-					exception);
+			throw new RuntimeException("Async search for '" + url + "' failed - " + exception.getMessage(), exception);
 		}
 	}
 
-	private HttpResponse<InputStream> pollSearchResultAfterDelay(HttpClient client, int pollingInterval,
-			HttpHeaders headers, String url) throws IOException, InterruptedException
+	private HttpResponse<InputStream> pollSearchResultAfterDelay(HttpClient client, String location,
+			int pollingInterval, String url) throws IOException, InterruptedException
 	{
-		logger.debug("Async search for '{}' in-progress, checking result in {} milliseconds", url,
-				initialPollingIntervalMilliseconds);
+		logger.debug("Async search for '{}' in-progress, checking result in {} milliseconds", url, pollingInterval);
 		Thread.sleep(pollingInterval);
 
+		HttpRequest request = createBaseRequest(location).GET().build();
+		return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+	}
+
+	private String extractLocation(HttpHeaders headers)
+	{
 		String location = headers.firstValue("Content-Location")
 				.orElseThrow(() -> new RuntimeException("No Content-Location header returned"));
 
@@ -91,10 +97,6 @@ public class AsyncFhirClientImpl extends AbstractHttpFhirClient implements Async
 			throw new RuntimeException("Content-Location (" + location + ") does not start with FHIR server baseUrl ("
 					+ getFhirBaseUrl() + ")");
 
-		String locationPath = location.substring(getFhirBaseUrl().length());
-
-		HttpRequest request = createBaseRequest(locationPath).GET().build();
-
-		return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+		return location.substring(getFhirBaseUrl().length());
 	}
 }
