@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -15,6 +16,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.pkcs.PKCSException;
+import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.Binary;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DocumentReference;
@@ -129,19 +132,25 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 				String baseUrl = api.getEndpointProvider().getLocalEndpointAddress();
 				Optional<Bundle> bundleOnServer = readPublicKeyIfExists(baseUrl);
 
+				byte[] hash = DigestUtils.sha256(publicKey.getEncoded());
+				boolean createOrUpdate = true;
+
 				if (bundleOnServer.isPresent())
 				{
-					logger.info("PublicKey Bundle already exists on DSF FHIR server with base Url '{}'", baseUrl);
+					if (hashMatches(hash, bundleOnServer.get()))
+					{
+						logger.info("PublicKey Bundle already exists on DSF FHIR server with base Url '{}'", baseUrl);
+						createOrUpdate = false;
+					}
+					else
+						logger.info("Updating PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
+
 				}
 				else
-				{
 					logger.info("Creating new PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
-					Bundle bundleToCreate = createPublicKeyBundle();
-					bundleOnServer = Optional
-							.of(api.getFhirWebserviceClientProvider().getLocalWebserviceClient().createConditionaly(
-									bundleToCreate, "identifier=" + ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
-											+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY));
-				}
+
+				if (createOrUpdate)
+					bundleOnServer = storePublicKeyBundle(hash);
 
 				IdType bundleOnServerId = bundleOnServer.get().getIdElement();
 				bundleOnServerId.setIdBase(baseUrl);
@@ -152,6 +161,17 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 		{
 			throw new RuntimeException("Error while creating PublicKey Bundle: " + exception.getMessage(), exception);
 		}
+	}
+
+	private boolean hashMatches(byte[] hash, Bundle bundleOnServer)
+	{
+		return bundleOnServer.getEntry().stream().filter(Bundle.BundleEntryComponent::hasResource)
+				.map(Bundle.BundleEntryComponent::getResource).filter(r -> r instanceof DocumentReference)
+				.map(r -> (DocumentReference) r).filter(DocumentReference::hasContent)
+				.flatMap(dr -> dr.getContent().stream())
+				.filter(DocumentReference.DocumentReferenceContentComponent::hasAttachment)
+				.map(DocumentReference.DocumentReferenceContentComponent::getAttachment).filter(Attachment::hasHash)
+				.map(Attachment::getHash).anyMatch(h -> MessageDigest.isEqual(hash, h));
 	}
 
 	@Override
@@ -181,7 +201,15 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 		}
 	}
 
-	private Bundle createPublicKeyBundle()
+	private Optional<Bundle> storePublicKeyBundle(byte[] hash)
+	{
+		Bundle bundleToCreate = createPublicKeyBundle(hash);
+		return Optional.of(api.getFhirWebserviceClientProvider().getLocalWebserviceClient().updateConditionaly(
+				bundleToCreate, Map.of("identifier", List.of(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
+						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY))));
+	}
+
+	private Bundle createPublicKeyBundle(byte[] hash)
 	{
 		Date date = new Date();
 
@@ -190,13 +218,14 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 		binary.setId(UUID.randomUUID().toString());
 
 		DocumentReference documentReference = new DocumentReference().setStatus(CURRENT).setDocStatus(FINAL);
+		documentReference.setId(UUID.randomUUID().toString());
 		documentReference.getMasterIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
 				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY);
 		documentReference.addAuthor().setType(ResourceType.Organization.name())
 				.setIdentifier(api.getOrganizationProvider().getLocalOrganizationIdentifier().get());
 		documentReference.setDate(date);
 		documentReference.addContent().getAttachment().setContentType("application/pem-certificate-chain")
-				.setUrl("urn:uuid:" + binary.getId()).setHash(DigestUtils.sha256(publicKey.getEncoded()));
+				.setUrl("urn:uuid:" + binary.getId()).setHash(hash);
 
 		Bundle bundle = new Bundle().setType(COLLECTION);
 		bundle.getIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
