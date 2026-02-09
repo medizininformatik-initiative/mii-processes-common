@@ -12,6 +12,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
@@ -47,8 +49,25 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	// openssl rsa -in keypair.pem -pubout -out publickey.crt
 	// openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
 
+
 	/**
-	 * One or both parameters should be <code>null</code>
+	 * Creating a KeyProviderImpl without private and public keys, e.g. if only {@link #readPublicKeyIfExists(String)}
+	 * is used. The method {@link #createPublicKeyIfNotExists()} will not do anything in this case.
+	 *
+	 * @param api
+	 *            not <code>null</code>
+	 * @param dataLogger
+	 *            not <code>null</code>
+	 * @return KeyProvider
+	 */
+	public static KeyProviderImpl fromNoKeys(ProcessPluginApi api, DataLogger dataLogger)
+	{
+		return new KeyProviderImpl(api, null, null, dataLogger);
+	}
+
+	/**
+	 * Creating a KeyProviderImpl based on private and public key files in PEM format. The keys must be RSA keys and
+	 * must match each other.
 	 *
 	 * @param api
 	 *            not <code>null</code>
@@ -56,11 +75,16 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	 *            not <code>null</code>
 	 * @param publicKeyFile
 	 *            not <code>null</code>
+	 * @param dataLogger
+	 *            not <code>null</code>
 	 * @return KeyProvider
 	 */
 	public static KeyProviderImpl fromFiles(ProcessPluginApi api, String privateKeyFile, String publicKeyFile,
 			DataLogger dataLogger)
 	{
+		Objects.requireNonNull(privateKeyFile, "privateKeyFile path must not be null");
+		Objects.requireNonNull(publicKeyFile, "publicKeyFile path must not be null");
+
 		logger.info("Configuring KeyProvider with private-key from '{}' and public-key from '{}'", privateKeyFile,
 				publicKeyFile);
 
@@ -69,14 +93,11 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		try
 		{
-			if (privateKeyFile != null)
-			{
-				Path privateKeyPath = Paths.get(privateKeyFile);
-				if (!Files.isReadable(privateKeyPath))
-					throw new RuntimeException("PrivateKey at '" + privateKeyFile + "' not readable");
+			Path privateKeyPath = Paths.get(privateKeyFile);
+			if (!Files.isReadable(privateKeyPath))
+				throw new RuntimeException("PrivateKey at '" + privateKeyFile + "' not readable");
 
-				privateKey = PemIo.readPrivateKeyFromPem(privateKeyPath);
-			}
+			privateKey = PemIo.readPrivateKeyFromPem(privateKeyPath);
 		}
 		catch (IOException | PKCSException e)
 		{
@@ -85,20 +106,29 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		try
 		{
-			if (publicKeyFile != null)
-			{
-				Path publicKeyPath = Paths.get(publicKeyFile);
-				if (!Files.isReadable(publicKeyPath))
-					throw new RuntimeException("PublicKey at '" + publicKeyFile + "' not readable");
+			Path publicKeyPath = Paths.get(publicKeyFile);
+			if (!Files.isReadable(publicKeyPath))
+				throw new RuntimeException("PublicKey at '" + publicKeyFile + "' not readable");
 
-				publicKey = PemIo.readPublicKeyFromPem(publicKeyPath);
-			}
+			publicKey = PemIo.readPublicKeyFromPem(publicKeyPath);
 		}
 		catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e)
 		{
 			throw new RuntimeException("Error while reading PublicKey from '" + publicKeyFile + "'", e);
 		}
 
+		if (privateKey == null || !(privateKey instanceof RSAPrivateKey))
+		{
+			throw new RuntimeException("PrivateKey '%s' is not an RSA based private key. Only RSA is supported."
+					.formatted(privateKeyFile));
+		}
+		if (publicKey == null || !((RSAPrivateKey) privateKey).getModulus().equals(publicKey.getModulus())
+				|| ((privateKey instanceof RSAPrivateCrtKey)
+						&& !((RSAPrivateCrtKey) privateKey).getPublicExponent().equals(publicKey.getPublicExponent())))
+		{
+			throw new RuntimeException(
+					"PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile, publicKeyFile));
+		}
 		return new KeyProviderImpl(api, privateKey, publicKey, dataLogger);
 	}
 
@@ -144,7 +174,6 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 					}
 					else
 						logger.info("Updating PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
-
 				}
 				else
 					logger.info("Creating new PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
