@@ -9,11 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -23,7 +20,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.bouncycastle.pkcs.PKCSException;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.Binary;
 import org.hl7.fhir.r4.model.Bundle;
@@ -34,10 +30,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
-import de.medizininformatik_initiative.processes.common.fhir.client.logging.DataLogger;
+import de.hsheilbronn.mi.utils.crypto.io.PemReader;
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
-import de.rwh.utils.crypto.io.PemIo;
-import dev.dsf.bpe.v1.ProcessPluginApi;
+import dev.dsf.bpe.v2.ProcessPluginApi;
+import dev.dsf.bpe.v2.service.DataLogger;
 
 public class KeyProviderImpl implements KeyProvider, InitializingBean
 {
@@ -65,7 +61,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 				publicKeyFile);
 
 		PrivateKey privateKey = null;
-		RSAPublicKey publicKey = null;
+		PublicKey publicKey = null;
 
 		try
 		{
@@ -75,10 +71,10 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 				if (!Files.isReadable(privateKeyPath))
 					throw new RuntimeException("PrivateKey at '" + privateKeyFile + "' not readable");
 
-				privateKey = PemIo.readPrivateKeyFromPem(privateKeyPath);
+				privateKey = PemReader.readPrivateKey(privateKeyPath);
 			}
 		}
-		catch (IOException | PKCSException e)
+		catch (IOException e)
 		{
 			throw new RuntimeException("Error while reading PrivateKey from '" + privateKeyFile + "'", e);
 		}
@@ -91,10 +87,10 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 				if (!Files.isReadable(publicKeyPath))
 					throw new RuntimeException("PublicKey at '" + publicKeyFile + "' not readable");
 
-				publicKey = PemIo.readPublicKeyFromPem(publicKeyPath);
+				publicKey = PemReader.readCertificate(publicKeyPath).getPublicKey();
 			}
 		}
-		catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e)
+		catch (IOException e)
 		{
 			throw new RuntimeException("Error while reading PublicKey from '" + publicKeyFile + "'", e);
 		}
@@ -175,13 +171,13 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	}
 
 	@Override
-	public Optional<Bundle> readPublicKeyIfExists(String webserviceUrl)
+	public Optional<Bundle> readPublicKeyIfExists(String endpointUrl)
 	{
-		logger.info("Reading PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", webserviceUrl);
+		logger.info("Reading PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", endpointUrl);
 
-		Bundle publicKeyBundle = api.getFhirWebserviceClientProvider().getWebserviceClient(webserviceUrl).search(
-				Bundle.class, Map.of("identifier", Collections.singletonList(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY
-						+ "|" + ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY)));
+		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class,
+				Map.of("identifier", Collections.singletonList(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
+						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY)));
 
 		int total = publicKeyBundle.getTotal();
 
@@ -190,13 +186,13 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 			if (total > 1)
 				logger.warn(
 						"PublicKey Bundle on DSF FHIR server with baseUrl '{}' contains > 1 entries ({}), using the first",
-						webserviceUrl, total);
+						endpointUrl, total);
 
 			return Optional.of((Bundle) publicKeyBundle.getEntryFirstRep().getResource());
 		}
 		else
 		{
-			logger.debug("PublicKey Bundle on DSF FHIR server with baseUrl '{}' is empty", webserviceUrl);
+			logger.debug("PublicKey Bundle on DSF FHIR server with baseUrl '{}' is empty", endpointUrl);
 			return Optional.empty();
 		}
 	}
@@ -204,8 +200,8 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	private Optional<Bundle> storePublicKeyBundle(byte[] hash)
 	{
 		Bundle bundleToCreate = createPublicKeyBundle(hash);
-		return Optional.of(api.getFhirWebserviceClientProvider().getLocalWebserviceClient().updateConditionaly(
-				bundleToCreate, Map.of("identifier", List.of(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
+		return Optional.of(api.getDsfClientProvider().getLocal().updateConditionaly(bundleToCreate,
+				Map.of("identifier", List.of(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
 						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY))));
 	}
 
@@ -215,28 +211,28 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		Binary binary = new Binary().setContentType("application/pem-certificate-chain");
 		binary.setContent(getPublicKey().getEncoded());
-		binary.setId(UUID.randomUUID().toString());
 
 		DocumentReference documentReference = new DocumentReference().setStatus(CURRENT).setDocStatus(FINAL);
-		documentReference.setId(UUID.randomUUID().toString());
 		documentReference.getMasterIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
 				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY);
 		documentReference.addAuthor().setType(ResourceType.Organization.name())
 				.setIdentifier(api.getOrganizationProvider().getLocalOrganizationIdentifier().get());
 		documentReference.setDate(date);
+
+		String binaryUuid = "urn:uuid:" + UUID.randomUUID().toString();
 		documentReference.addContent().getAttachment().setContentType("application/pem-certificate-chain")
-				.setUrl("urn:uuid:" + binary.getId()).setHash(hash);
+				.setUrl(binaryUuid).setHash(hash);
 
 		Bundle bundle = new Bundle().setType(COLLECTION);
 		bundle.getIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
 				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY);
 		bundle.setTimestamp(date);
-		bundle.addEntry().setResource(documentReference).setFullUrl("urn:uuid:" + documentReference.getId());
-		bundle.addEntry().setResource(binary).setFullUrl("urn:uuid:" + binary.getId());
+		bundle.addEntry().setResource(documentReference).setFullUrl("urn:uuid:" + UUID.randomUUID().toString());
+		bundle.addEntry().setResource(binary).setFullUrl(binaryUuid);
 
 		api.getReadAccessHelper().addAll(bundle);
 
-		dataLogger.logResource("Created PublicKey Bundle", bundle);
+		dataLogger.log("Created PublicKey Bundle", bundle);
 
 		return bundle;
 	}
