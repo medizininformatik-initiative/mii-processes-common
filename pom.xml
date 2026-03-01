@@ -70,7 +70,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
+				<version>3.15.0</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -98,36 +98,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.6.0</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<artifactSet>
-								<includes>
-									<include>ca.uhn.hapi.fhir:hapi-fhir-client</include>
-									<include>org.apache.tika:tika-core</include>
-								</includes>
-							</artifactSet>
-							<filters>
-								<filter>
-									<artifact>ca.uhn.hapi.fhir:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.MF</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.apache.tika:tika-core</artifact>
-									<excludes>
-										<exclude>META-INF/*.MF</exclude>
-									</excludes>
-								</filter>
-							</filters>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -142,8 +112,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>
-				<!-- 3.1.0 not working, no git commit hash as buildnumber -->
-				<version>1.4</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<phase>validate</phase>
