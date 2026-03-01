@@ -1,5 +1,8 @@
 package de.medizininformatik_initiative.processes.common.util;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 public interface ConstantsBase
 {
 	String PROCESS_MII_NAME_BASE = "medizininformatik-initiativede_";
@@ -29,6 +32,6 @@ public interface ConstantsBase
 	String EXTENSION_DATA_SET_STATUS_ERROR_URL = "http://medizininformatik-initiative.de/fhir/StructureDefinition/extension-data-set-status-error";
 
 	int DSF_CLIENT_RETRY_6_TIMES = 6;
-	long DSF_CLIENT_RETRY_INTERVAL_10SEC = 10000;
-	long DSF_CLIENT_RETRY_INTERVAL_5MIN = 300000;
+	Duration DSF_CLIENT_RETRY_INTERVAL_10SEC = Duration.of(10, ChronoUnit.SECONDS);
+	Duration DSF_CLIENT_RETRY_INTERVAL_5MIN = Duration.of(10, ChronoUnit.MINUTES);
 }
