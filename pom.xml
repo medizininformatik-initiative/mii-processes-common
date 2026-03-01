@@ -139,7 +139,7 @@
 				<artifactId>impsort-maven-plugin</artifactId>
 				<version>1.12.0</version>
 				<configuration>
-					<compliance>17</compliance>
+					<compliance>21</compliance>
 					<groups>java.,javax.,org.,com.</groups>
 					<staticGroups>java,*</staticGroups>
 				</configuration>
