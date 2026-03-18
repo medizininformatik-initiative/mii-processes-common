@@ -21,7 +21,7 @@ public class KeyProviderImplTest
 	public void errorOnPrivateAndPublicKeyFilesAreNull() throws Exception
 	{
 		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, null, null, null));
+				() -> KeyProviderImpl.fromFiles(null, null, null));
 
 		assertEquals("privateKeyFile path must not be null", exception.getMessage());
 	}
@@ -37,7 +37,7 @@ public class KeyProviderImplTest
 		PemWriter.writePublicKey(nonMatchingPublicKey, publicKeyFile.toPath());
 
 		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, null, publicKeyFile.getAbsolutePath(), null));
+				() -> KeyProviderImpl.fromFiles(null, null, publicKeyFile.getAbsolutePath()));
 
 		assertEquals("privateKeyFile path must not be null", exception.getMessage());
 	}
@@ -53,7 +53,7 @@ public class KeyProviderImplTest
 		PemWriter.writePrivateKey(privateKey).asOpenSslClassic().notEncrypted().toFile(privateKeyFile.toPath());
 
 		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, privateKeyFile.getAbsolutePath(), null, null));
+				() -> KeyProviderImpl.fromFiles(null, privateKeyFile.getAbsolutePath(), null));
 
 		assertEquals("publicKeyFile path must not be null", exception.getMessage());
 	}
@@ -75,7 +75,7 @@ public class KeyProviderImplTest
 		assertNotEquals(privateKey.getModulus(), nonMatchingPublicKey.getModulus());
 
 		Exception exception = assertThrows(IllegalArgumentException.class, () -> KeyProviderImpl.fromFiles(null,
-				privateKeyFile.getAbsolutePath(), publicKeyFile.getAbsolutePath(), null));
+				privateKeyFile.getAbsolutePath(), publicKeyFile.getAbsolutePath()));
 
 		assertEquals("PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile.getAbsolutePath(),
 				publicKeyFile.getAbsolutePath()), exception.getMessage());
@@ -100,7 +100,7 @@ public class KeyProviderImplTest
 		assertFalse(privateKey instanceof RSAPrivateKey);
 
 		Exception exception = assertThrows(IllegalArgumentException.class, () -> KeyProviderImpl.fromFiles(null,
-				privateKeyFile.getAbsolutePath(), publicKeyFile.getAbsolutePath(), null));
+				privateKeyFile.getAbsolutePath(), publicKeyFile.getAbsolutePath()));
 
 		assertTrue(exception.getMessage().contains("is not an RSA based private key. Only RSA is supported."));
 	}
@@ -121,7 +121,7 @@ public class KeyProviderImplTest
 		PemWriter.writePrivateKey(privateKey).asOpenSslClassic().notEncrypted().toFile(privateKeyFile.toPath());
 
 		var provider = KeyProviderImpl.fromFiles(null, privateKeyFile.getAbsolutePath(),
-				publicKeyFile.getAbsolutePath(), null);
+				publicKeyFile.getAbsolutePath());
 
 		assertEquals(privateKey.getModulus(), ((RSAPrivateKey) provider.getPrivateKey()).getModulus());
 

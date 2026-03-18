@@ -36,7 +36,6 @@ import org.springframework.beans.factory.InitializingBean;
 import de.hsheilbronn.mi.utils.crypto.io.PemReader;
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
 import dev.dsf.bpe.v2.ProcessPluginApi;
-import dev.dsf.bpe.v2.service.DataLogger;
 
 public class KeyProviderImpl implements KeyProvider, InitializingBean
 {
@@ -56,12 +55,9 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	 *            not <code>null</code>
 	 * @param publicKeyFile
 	 *            not <code>null</code>
-	 * @param dataLogger
-	 *            not <code>null</code>
 	 * @return KeyProvider
 	 */
-	public static KeyProviderImpl fromFiles(ProcessPluginApi api, String privateKeyFile, String publicKeyFile,
-			DataLogger dataLogger)
+	public static KeyProviderImpl fromFiles(ProcessPluginApi api, String privateKeyFile, String publicKeyFile)
 	{
 		Objects.requireNonNull(privateKeyFile, "privateKeyFile path must not be null");
 		Objects.requireNonNull(publicKeyFile, "publicKeyFile path must not be null");
@@ -117,28 +113,25 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 			throw new IllegalArgumentException(
 					"PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile, publicKeyFile));
 		}
-		return new KeyProviderImpl(api, privateKey, publicKey, dataLogger);
+		return new KeyProviderImpl(api, privateKey, publicKey);
 	}
 
 	private final PrivateKey privateKey;
 	private final PublicKey publicKey;
 
 	private final ProcessPluginApi api;
-	private final DataLogger dataLogger;
 
-	public KeyProviderImpl(ProcessPluginApi api, PrivateKey privateKey, PublicKey publicKey, DataLogger dataLogger)
+	public KeyProviderImpl(ProcessPluginApi api, PrivateKey privateKey, PublicKey publicKey)
 	{
 		this.api = api;
 		this.privateKey = privateKey;
 		this.publicKey = publicKey;
-		this.dataLogger = dataLogger;
 	}
 
 	@Override
 	public void afterPropertiesSet()
 	{
 		Objects.requireNonNull(api, "api");
-		Objects.requireNonNull(dataLogger, "dataLogger");
 	}
 
 	public void createPublicKeyIfNotExists()
@@ -253,7 +246,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		api.getReadAccessHelper().addAll(bundle);
 
-		dataLogger.log("Created PublicKey Bundle", bundle);
+		api.getDataLogger().log("Created PublicKey Bundle", bundle);
 
 		return bundle;
 	}
