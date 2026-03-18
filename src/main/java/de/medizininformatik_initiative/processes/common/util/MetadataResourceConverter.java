@@ -51,19 +51,16 @@ public class MetadataResourceConverter implements InitializingBean
 	}
 
 	private final ProcessPluginApi api;
-	private final String resourcesVersion;
 
-	public MetadataResourceConverter(ProcessPluginApi api, String resourcesVersion)
+	public MetadataResourceConverter(ProcessPluginApi api)
 	{
 		this.api = api;
-		this.resourcesVersion = resourcesVersion;
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception
 	{
 		Objects.requireNonNull(api, "api");
-		Objects.requireNonNull(resourcesVersion, "resourcesVersion");
 	}
 
 	public <T extends MetadataResource> void searchAndConvertOlderResourcesIfCurrentIsNewestResource(String url,
@@ -95,6 +92,7 @@ public class MetadataResourceConverter implements InitializingBean
 	private boolean currentIsNewestResourceAndOlderResourcesExist(
 			List<? extends MetadataResource> allResourcesSortedDesc)
 	{
-		return allResourcesSortedDesc.size() > 1 && resourcesVersion.equals(allResourcesSortedDesc.get(0).getVersion());
+		return allResourcesSortedDesc.size() > 1 && api.getProcessPluginDefinition().getResourceVersion()
+				.equals(allResourcesSortedDesc.get(0).getVersion());
 	}
 }
