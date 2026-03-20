@@ -15,7 +15,7 @@ public class DataSetStatusGenerator
 	public ParameterComponent createDataSetStatusInput(String statusVersion, String statusCode, String typeSystem,
 			String typeVersion, String typeCode)
 	{
-		return createDataSetStatusInput(statusCode, statusVersion, typeSystem, typeVersion, typeCode, null);
+		return createDataSetStatusInput(statusVersion, statusCode, typeSystem, typeVersion, typeCode, null);
 	}
 
 	public ParameterComponent createDataSetStatusInput(String statusVersion, String statusCode, String typeSystem,

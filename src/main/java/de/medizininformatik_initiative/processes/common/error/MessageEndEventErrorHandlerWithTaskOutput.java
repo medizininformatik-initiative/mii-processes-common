@@ -6,16 +6,14 @@ import org.hl7.fhir.r4.model.Task;
 
 import dev.dsf.bpe.v2.ProcessPluginApi;
 import dev.dsf.bpe.v2.activity.values.SendTaskValues;
-import dev.dsf.bpe.v2.error.impl.DefaultMessageIntermediateThrowEventErrorHandler;
+import dev.dsf.bpe.v2.error.impl.DefaultMessageEndEventErrorHandler;
 import dev.dsf.bpe.v2.variables.Variables;
 
-public class MessageIntermediateThrowEventErrorHandlerWithTaskOutput
-		extends DefaultMessageIntermediateThrowEventErrorHandler
+public class MessageEndEventErrorHandlerWithTaskOutput extends DefaultMessageEndEventErrorHandler
 {
 	private final Function<Exception, Task.TaskOutputComponent> taskOutputGenerator;
 
-	public MessageIntermediateThrowEventErrorHandlerWithTaskOutput(
-			Function<Exception, Task.TaskOutputComponent> taskOutputGenerator)
+	public MessageEndEventErrorHandlerWithTaskOutput(Function<Exception, Task.TaskOutputComponent> taskOutputGenerator)
 	{
 		this.taskOutputGenerator = taskOutputGenerator;
 	}
@@ -34,6 +32,4 @@ public class MessageIntermediateThrowEventErrorHandlerWithTaskOutput
 
 		return super.handleException(api, variables, sendTaskValues, exception);
 	}
-
-
 }

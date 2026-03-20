@@ -18,47 +18,6 @@ import de.hsheilbronn.mi.utils.crypto.io.PemWriter;
 public class KeyProviderImplTest
 {
 	@Test
-	public void errorOnPrivateAndPublicKeyFilesAreNull() throws Exception
-	{
-		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, null, null));
-
-		assertEquals("privateKeyFile path must not be null", exception.getMessage());
-	}
-
-	@Test
-	public void errorOnPrivateKeyFileIsNull() throws Exception
-	{
-		var generator = KeyPairGenerator.getInstance("RSA");
-		generator.initialize(1024);
-		var nonMatchingPublicKey = (RSAPublicKey) generator.generateKeyPair().getPublic();
-		var publicKeyFile = File.createTempFile("publicKey", ".pem");
-		publicKeyFile.deleteOnExit();
-		PemWriter.writePublicKey(nonMatchingPublicKey, publicKeyFile.toPath());
-
-		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, null, publicKeyFile.getAbsolutePath()));
-
-		assertEquals("privateKeyFile path must not be null", exception.getMessage());
-	}
-
-	@Test
-	public void errorOnPublicKeyFileIsNull() throws Exception
-	{
-		var generator = KeyPairGenerator.getInstance("RSA");
-		generator.initialize(1024);
-		var privateKey = (RSAPrivateKey) generator.generateKeyPair().getPrivate();
-		var privateKeyFile = File.createTempFile("privateKey", ".pem");
-		privateKeyFile.deleteOnExit();
-		PemWriter.writePrivateKey(privateKey).asOpenSslClassic().notEncrypted().toFile(privateKeyFile.toPath());
-
-		Exception exception = assertThrows(NullPointerException.class,
-				() -> KeyProviderImpl.fromFiles(null, privateKeyFile.getAbsolutePath(), null));
-
-		assertEquals("publicKeyFile path must not be null", exception.getMessage());
-	}
-
-	@Test
 	public void errorOnNonMatchingPrivateAndPublicKey() throws Exception
 	{
 		var generator = KeyPairGenerator.getInstance("RSA");

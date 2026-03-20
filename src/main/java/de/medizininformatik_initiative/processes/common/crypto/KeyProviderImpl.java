@@ -45,6 +45,11 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	// openssl rsa -in keypair.pem -pubout -out publickey.crt
 	// openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
 
+	public static KeyProviderImpl fromNothing(ProcessPluginApi api)
+	{
+		return new KeyProviderImpl(api, null, null);
+	}
+
 	/**
 	 * Creating a KeyProviderImpl based on private and public key files in PEM format. The keys must be RSA keys and
 	 * must match each other.
@@ -59,9 +64,6 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 	 */
 	public static KeyProviderImpl fromFiles(ProcessPluginApi api, String privateKeyFile, String publicKeyFile)
 	{
-		Objects.requireNonNull(privateKeyFile, "privateKeyFile path must not be null");
-		Objects.requireNonNull(publicKeyFile, "publicKeyFile path must not be null");
-
 		logger.info("Configuring KeyProvider with private-key from '{}' and public-key from '{}'", privateKeyFile,
 				publicKeyFile);
 
@@ -70,49 +72,61 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		try
 		{
-			Path privateKeyPath = Paths.get(privateKeyFile);
-			if (!Files.isReadable(privateKeyPath))
-				throw new RuntimeException("PrivateKey at '" + privateKeyFile + "' not readable");
+			if (privateKeyFile != null)
+			{
+				Path privateKeyPath = Paths.get(privateKeyFile);
+				if (!Files.isReadable(privateKeyPath))
+					throw new RuntimeException("PrivateKey at '" + privateKeyFile + "' not readable");
 
-			privateKey = PemReader.readPrivateKey(privateKeyPath);
+				privateKey = PemReader.readPrivateKey(privateKeyPath);
+
+				if (!(privateKey instanceof RSAPrivateKey))
+				{
+					throw new IllegalArgumentException(
+							"PrivateKey '%s' is not an RSA based private key. Only RSA is supported."
+									.formatted(privateKeyFile));
+				}
+			}
 		}
 		catch (IOException e)
 		{
 			throw new RuntimeException("Error while reading PrivateKey from '" + privateKeyFile + "'", e);
 		}
 
-		if (!(privateKey instanceof RSAPrivateKey))
-		{
-			throw new IllegalArgumentException("PrivateKey '%s' is not an RSA based private key. Only RSA is supported."
-					.formatted(privateKeyFile));
-		}
-
 		try
 		{
-			Path publicKeyPath = Paths.get(publicKeyFile);
-			if (!Files.isReadable(publicKeyPath))
-				throw new RuntimeException("PublicKey at '" + publicKeyFile + "' not readable");
+			if (publicKeyFile != null)
+			{
+				Path publicKeyPath = Paths.get(publicKeyFile);
+				if (!Files.isReadable(publicKeyPath))
+					throw new RuntimeException("PublicKey at '" + publicKeyFile + "' not readable");
 
-			publicKey = PemReaderPublicKey.readPublicKey(publicKeyPath);
+				publicKey = PemReaderPublicKey.readPublicKey(publicKeyPath);
+
+				if (!(publicKey instanceof RSAPublicKey))
+				{
+					throw new IllegalArgumentException(
+							"PublicKey '%s' is not an RSA based public key. Only RSA is supported."
+									.formatted(privateKeyFile));
+				}
+			}
 		}
 		catch (IOException e)
 		{
 			throw new RuntimeException("Error while reading PublicKey from '" + publicKeyFile + "'", e);
 		}
 
-		if (!(publicKey instanceof RSAPublicKey))
+		if (privateKey != null && publicKey != null)
 		{
-			throw new IllegalArgumentException(
-					"PublicKey '%s' is not an RSA based public key. Only RSA is supported.".formatted(privateKeyFile));
+			if (!((RSAPrivateKey) privateKey).getModulus().equals(((RSAPublicKey) publicKey).getModulus())
+					|| ((privateKey instanceof RSAPrivateCrtKey) && !((RSAPrivateCrtKey) privateKey).getPublicExponent()
+							.equals(((RSAPublicKey) publicKey).getPublicExponent())))
+			{
+				throw new IllegalArgumentException(
+						"PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile, publicKeyFile));
+			}
 		}
 
-		if (!((RSAPrivateKey) privateKey).getModulus().equals(((RSAPublicKey) publicKey).getModulus())
-				|| ((privateKey instanceof RSAPrivateCrtKey) && !((RSAPrivateCrtKey) privateKey).getPublicExponent()
-						.equals(((RSAPublicKey) publicKey).getPublicExponent())))
-		{
-			throw new IllegalArgumentException(
-					"PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile, publicKeyFile));
-		}
 		return new KeyProviderImpl(api, privateKey, publicKey);
 	}
 
