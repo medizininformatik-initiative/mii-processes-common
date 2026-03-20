@@ -23,7 +23,7 @@ public class MessageIntermediateThrowEventHandlerContinuingProcess implements Me
 			Exception exception)
 	{
 		logger.debug("Error while executing Task message send {}", getClass().getName(), exception);
-		logger.error("Process {} has non-fatal error (continuing execution) in step {} for task {}, reason: {} - {}",
+		logger.error("Process {} has non-fatal error (continuing execution) in step {} for Task {}, reason: {} - {}",
 				variables.getProcessDefinitionId(), variables.getActivityInstanceId(),
 				api.getTaskHelper().getLocalVersionlessAbsoluteUrl(variables.getStartTask()),
 				exception.getClass().getName(), exception.getMessage());
