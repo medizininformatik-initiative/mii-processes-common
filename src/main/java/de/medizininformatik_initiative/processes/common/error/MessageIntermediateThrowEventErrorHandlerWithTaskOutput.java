@@ -34,6 +34,4 @@ public class MessageIntermediateThrowEventErrorHandlerWithTaskOutput
 
 		return super.handleException(api, variables, sendTaskValues, exception);
 	}
-
-
 }

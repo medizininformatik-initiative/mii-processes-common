@@ -1,7 +1,7 @@
 package de.medizininformatik_initiative.processes.common.util;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 import org.hl7.fhir.r4.model.BackboneElement;
 import org.hl7.fhir.r4.model.Coding;
@@ -64,7 +64,7 @@ public class DataSetStatusGenerator
 		transformInputToOutputComponents(inputTask, typeSystem, typeVersion, typeCode).forEach(outputTask::addOutput);
 	}
 
-	public Stream<TaskOutputComponent> transformInputToOutputComponents(Task inputTask, String typeSystem,
+	public List<TaskOutputComponent> transformInputToOutputComponents(Task inputTask, String typeSystem,
 			String typeVersion, String typeCode)
 	{
 		Objects.requireNonNull(typeSystem);
@@ -73,13 +73,13 @@ public class DataSetStatusGenerator
 		return inputTask.getInput().stream()
 				.filter(i -> i.getType().getCoding().stream().anyMatch(c -> typeSystem.equals(c.getSystem())
 						&& typeVersion.equals(c.getVersion()) && typeCode.equals(c.getCode())))
-				.map(this::toTaskOutputComponent);
+				.map(this::toTaskOutputComponent).toList();
 	}
 
 	private TaskOutputComponent toTaskOutputComponent(ParameterComponent inputComponent)
 	{
 		TaskOutputComponent outputComponent = new TaskOutputComponent().setType(inputComponent.getType())
-				.setValue(inputComponent.getValue().copy());
+				.setValue(inputComponent.getValue());
 		outputComponent.setExtension(inputComponent.getExtension());
 
 		return outputComponent;
@@ -91,7 +91,7 @@ public class DataSetStatusGenerator
 		transformOutputToInputComponent(outputTask, typeSystem, typeVersion, typeCode).forEach(inputTask::addInput);
 	}
 
-	public Stream<ParameterComponent> transformOutputToInputComponent(Task outputTask, String typeSystem,
+	public List<ParameterComponent> transformOutputToInputComponent(Task outputTask, String typeSystem,
 			String typeVersion, String typeCode)
 	{
 		Objects.requireNonNull(typeSystem);
@@ -100,13 +100,13 @@ public class DataSetStatusGenerator
 		return outputTask.getOutput().stream()
 				.filter(i -> i.getType().getCoding().stream().anyMatch(c -> typeSystem.equals(c.getSystem())
 						&& typeVersion.equals(c.getVersion()) && typeCode.equals(c.getCode())))
-				.map(this::toTaskInputComponent);
+				.map(this::toTaskInputComponent).toList();
 	}
 
 	private ParameterComponent toTaskInputComponent(TaskOutputComponent outputComponent)
 	{
 		ParameterComponent inputComponent = new ParameterComponent().setType(outputComponent.getType())
-				.setValue(outputComponent.getValue().copy());
+				.setValue(outputComponent.getValue());
 		inputComponent.setExtension(outputComponent.getExtension());
 
 		return inputComponent;
