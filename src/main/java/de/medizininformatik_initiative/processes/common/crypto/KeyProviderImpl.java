@@ -71,7 +71,9 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 						createOrUpdate = false;
 					}
 					else
-						logger.info("Updating PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
+						logger.info(
+								"Updating PublicKey Bundle on DSF FHIR server with baseUrl '{}' because hash changed ...",
+								baseUrl);
 				}
 				else
 					logger.info("Creating new PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
