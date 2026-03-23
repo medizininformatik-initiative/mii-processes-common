@@ -8,6 +8,7 @@ import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Task;
 
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
+
 import dev.dsf.bpe.v2.ProcessPluginApi;
 import dev.dsf.bpe.v2.activity.task.BusinessKeyStrategy;
 import dev.dsf.bpe.v2.activity.task.DefaultTaskSender;
@@ -25,9 +26,8 @@ public class RetryTaskSender extends DefaultTaskSender
 			BusinessKeyStrategy businessKeyStrategy,
 			Function<Target, List<Task.ParameterComponent>> additionalInputParameters)
 	{
-		super(api, variables, sendTaskValues, businessKeyStrategy, additionalInputParameters);
-		this.retryTimes = ConstantsBase.DSF_CLIENT_RETRY_6_TIMES;
-		this.retryInterval = ConstantsBase.DSF_CLIENT_RETRY_INTERVAL_5MIN;
+		this(api, variables, sendTaskValues, businessKeyStrategy, additionalInputParameters,
+				ConstantsBase.DSF_CLIENT_RETRY_6_TIMES, ConstantsBase.DSF_CLIENT_RETRY_INTERVAL_5MIN);
 	}
 
 	public RetryTaskSender(ProcessPluginApi api, Variables variables, SendTaskValues sendTaskValues,
