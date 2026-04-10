@@ -34,4 +34,6 @@ public interface ConstantsBase
 	int DSF_CLIENT_RETRY_6_TIMES = 6;
 	Duration DSF_CLIENT_RETRY_INTERVAL_10SEC = Duration.of(10, ChronoUnit.SECONDS);
 	Duration DSF_CLIENT_RETRY_INTERVAL_5MIN = Duration.of(5, ChronoUnit.MINUTES);
+
+	String EXCEPTION_MESSAGE_DIVIDER = " -|- ";
 }
