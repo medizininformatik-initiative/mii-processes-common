@@ -8,6 +8,8 @@ public interface ConstantsBase
 	String PROCESS_MII_NAME_BASE = "medizininformatik-initiativede_";
 	String PROCESS_MII_URI_BASE = "http://medizininformatik-initiative.de/bpe/Process/";
 
+	String BPMN_EXECUTION_VARIABLE_SENT_TASK = "sentTask";
+
 	String NAMINGSYSTEM_MII_PROJECT_IDENTIFIER = "http://medizininformatik-initiative.de/sid/project-identifier";
 	String NAMINGSYSTEM_DSF_ORGANIZATION_IDENTIFIER_MEDICAL_INFORMATICS_INITIATIVE_CONSORTIUM = "medizininformatik-initiative.de";
 

@@ -8,10 +8,15 @@ import dev.dsf.bpe.v2.activity.values.SendTaskValues;
 import dev.dsf.bpe.v2.error.MessageIntermediateThrowEventErrorHandler;
 import dev.dsf.bpe.v2.variables.Variables;
 
-public class MessageIntermediateThrowEventHandlerContinuingProcess implements MessageIntermediateThrowEventErrorHandler
+public class MessageIntermediateThrowEventErrorHandlerContinuingProcess
+		implements MessageIntermediateThrowEventErrorHandler
 {
 	private static final Logger logger = LoggerFactory
-			.getLogger(MessageIntermediateThrowEventHandlerContinuingProcess.class);
+			.getLogger(MessageIntermediateThrowEventErrorHandlerContinuingProcess.class);
+
+	public MessageIntermediateThrowEventErrorHandlerContinuingProcess()
+	{
+	}
 
 	/**
 	 * Only logs the given {@link Exception}.
