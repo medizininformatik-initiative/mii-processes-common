@@ -49,5 +49,4 @@ public class PemReaderPublicKey
 				throw new IOException("Read pem object not a public key");
 		}
 	}
-
 }
