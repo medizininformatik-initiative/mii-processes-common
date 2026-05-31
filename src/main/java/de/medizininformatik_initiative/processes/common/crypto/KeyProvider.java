@@ -5,15 +5,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.security.interfaces.XECPrivateKey;
+import java.security.interfaces.XECPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Optional;
+
+import javax.crypto.KeyAgreement;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.slf4j.Logger;
@@ -25,6 +29,8 @@ import dev.dsf.bpe.v2.ProcessPluginApi;
 public interface KeyProvider
 {
 	Logger logger = LoggerFactory.getLogger(KeyProvider.class);
+
+	String ALGORITHM_X25519 = "X25519";
 
 	/**
 	 * @return can be <code>null</code>
@@ -41,7 +47,7 @@ public interface KeyProvider
 	 * {@link org.hl7.fhir.r4.model.Bundle.BundleType#COLLECTION} containing a
 	 * {@link org.hl7.fhir.r4.model.DocumentReference} with an {@link org.hl7.fhir.r4.model.Identifier} matching system
 	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY} and code
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY}
+	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519}
 	 * and a {@link org.hl7.fhir.r4.model.Binary} attachment based on a PublicKey provided by {@link #getPublicKey()} on
 	 * the local DSF FHIR server.
 	 */
@@ -52,7 +58,7 @@ public interface KeyProvider
 	 * {@link org.hl7.fhir.r4.model.Bundle.BundleType#COLLECTION} containing a
 	 * {@link org.hl7.fhir.r4.model.DocumentReference} with an {@link org.hl7.fhir.r4.model.Identifier} matching system
 	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY} and code
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY}
+	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519}
 	 * and a {@link org.hl7.fhir.r4.model.Binary} attachment based on a PublicKey provided by {@link #getPublicKey()} on
 	 * a local or remote DSF FHIR server.
 	 *
@@ -73,14 +79,14 @@ public interface KeyProvider
 	 *            not <code>null</code>
 	 * @return KeyProvider
 	 */
-	static KeyProvider from(ProcessPluginApi api)
+	static KeyProvider forX25519From(ProcessPluginApi api)
 	{
-		return new KeyProviderImpl(api, null, null);
+		return new KeyProviderX25519(api, null, null);
 	}
 
 	/**
-	 * Creating a KeyProvider based on private and public key files in PEM format. The keys must be RSA keys and must
-	 * match each other.
+	 * Creating a KeyProvider based on private and public key files in PEM format. The keys must be x25519 EC keys and
+	 * must match each other.
 	 *
 	 * @param api
 	 *            not <code>null</code>
@@ -90,7 +96,7 @@ public interface KeyProvider
 	 *            not <code>null</code>
 	 * @return KeyProvider
 	 */
-	static KeyProvider from(ProcessPluginApi api, String privateKeyFile, String publicKeyFile)
+	static KeyProvider forX25519From(ProcessPluginApi api, String privateKeyFile, String publicKeyFile)
 	{
 		logger.info("Configuring KeyProvider with private-key from '{}' and public-key from '{}'", privateKeyFile,
 				publicKeyFile);
@@ -108,10 +114,11 @@ public interface KeyProvider
 
 				privateKey = PemReader.readPrivateKey(privateKeyPath);
 
-				if (!(privateKey instanceof RSAPrivateKey))
+				if (!(privateKey instanceof XECPrivateKey)
+						&& !(ALGORITHM_X25519.equalsIgnoreCase(privateKey.getAlgorithm())))
 				{
 					throw new IllegalArgumentException(
-							"PrivateKey '%s' is not an RSA based private key. Only RSA is supported."
+							"PrivateKey '%s' is not an x25519 EC based private key. Only x25519 EC is supported."
 									.formatted(privateKeyFile));
 				}
 			}
@@ -131,10 +138,11 @@ public interface KeyProvider
 
 				publicKey = PemReaderPublicKey.readPublicKey(publicKeyPath);
 
-				if (!(publicKey instanceof RSAPublicKey))
+				if (!(publicKey instanceof XECPublicKey)
+						&& !(ALGORITHM_X25519.equalsIgnoreCase(publicKey.getAlgorithm())))
 				{
 					throw new IllegalArgumentException(
-							"PublicKey '%s' is not an RSA based public key. Only RSA is supported."
+							"PublicKey '%s' is not an x25519 EC based public key. Only x25519 EC is supported."
 									.formatted(privateKeyFile));
 				}
 			}
@@ -146,16 +154,40 @@ public interface KeyProvider
 
 		if (privateKey != null && publicKey != null)
 		{
-			if (!((RSAPrivateKey) privateKey).getModulus().equals(((RSAPublicKey) publicKey).getModulus())
-					|| ((privateKey instanceof RSAPrivateCrtKey) && !((RSAPrivateCrtKey) privateKey).getPublicExponent()
-							.equals(((RSAPublicKey) publicKey).getPublicExponent())))
+			if (!x25519KeysBelongTogether(privateKey, publicKey))
 			{
 				throw new IllegalArgumentException(
 						"PrivateKey '%s' and PublicKey '%s' do not match.".formatted(privateKeyFile, publicKeyFile));
 			}
 		}
 
-		return new KeyProviderImpl(api, privateKey, publicKey);
+		return new KeyProviderX25519(api, privateKey, publicKey);
+	}
+
+	private static boolean x25519KeysBelongTogether(PrivateKey privateKey, PublicKey publicKey)
+	{
+		try
+		{
+			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_X25519);
+			KeyPair probeKeyPair = keyPairGenerator.generateKeyPair();
+
+			byte[] secret1 = x25519Agreement(privateKey, probeKeyPair.getPublic());
+			byte[] secret2 = x25519Agreement(probeKeyPair.getPrivate(), publicKey);
+
+			return MessageDigest.isEqual(secret1, secret2);
+		}
+		catch (Exception exception)
+		{
+			throw new IllegalArgumentException("Could not verify if x25519 private/public key match.", exception);
+		}
+	}
+
+	private static byte[] x25519Agreement(PrivateKey privateKey, PublicKey publicKey) throws Exception
+	{
+		KeyAgreement keyAgreement = KeyAgreement.getInstance(ALGORITHM_X25519);
+		keyAgreement.init(privateKey);
+		keyAgreement.doPhase(publicKey, true);
+		return keyAgreement.generateSecret();
 	}
 
 	/**
@@ -165,17 +197,18 @@ public interface KeyProvider
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 */
-	static PublicKey from(byte[] bytes) throws NoSuchAlgorithmException, InvalidKeySpecException
+	static PublicKey forX25519From(byte[] bytes) throws NoSuchAlgorithmException, InvalidKeySpecException
 	{
-		PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(bytes));
+		PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_X25519).generatePublic(new X509EncodedKeySpec(bytes));
 
-		if (publicKey instanceof RSAPublicKey)
+		if (publicKey instanceof XECPublicKey)
 		{
 			return publicKey;
 		}
 		else
 		{
-			throw new IllegalStateException("Provided bytes are not an RSA based public key. Only RSA is supported.");
+			throw new IllegalStateException(
+					"Provided bytes are not an x25519 EC based public key. Only x25519 EC is supported.");
 		}
 	}
 }

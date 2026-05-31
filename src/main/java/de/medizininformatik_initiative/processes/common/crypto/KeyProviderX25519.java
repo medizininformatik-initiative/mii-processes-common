@@ -29,16 +29,16 @@ import org.springframework.beans.factory.InitializingBean;
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
 import dev.dsf.bpe.v2.ProcessPluginApi;
 
-public class KeyProviderImpl implements KeyProvider, InitializingBean
+public class KeyProviderX25519 implements KeyProvider, InitializingBean
 {
-	private static final Logger logger = LoggerFactory.getLogger(KeyProviderImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(KeyProviderX25519.class);
 
 	private final PrivateKey privateKey;
 	private final PublicKey publicKey;
 
 	private final ProcessPluginApi api;
 
-	public KeyProviderImpl(ProcessPluginApi api, PrivateKey privateKey, PublicKey publicKey)
+	public KeyProviderX25519(ProcessPluginApi api, PrivateKey privateKey, PublicKey publicKey)
 	{
 		this.api = api;
 		this.privateKey = privateKey;
@@ -110,7 +110,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class,
 				Map.of("identifier", Collections.singletonList(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
-						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY)));
+						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519)));
 
 		int total = publicKeyBundle.getTotal();
 
@@ -135,7 +135,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 		Bundle bundleToCreate = createPublicKeyBundle(hash);
 		return Optional.of(api.getDsfClientProvider().getLocal().updateConditionaly(bundleToCreate,
 				Map.of("identifier", List.of(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
-						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY))));
+						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519))));
 	}
 
 	private Bundle createPublicKeyBundle(byte[] hash)
@@ -147,7 +147,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		DocumentReference documentReference = new DocumentReference().setStatus(CURRENT).setDocStatus(FINAL);
 		documentReference.getMasterIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
-				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY);
+				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519);
 		documentReference.addAuthor().setType(ResourceType.Organization.name())
 				.setIdentifier(api.getOrganizationProvider().getLocalOrganizationIdentifier().get());
 		documentReference.setDate(date);
@@ -158,7 +158,7 @@ public class KeyProviderImpl implements KeyProvider, InitializingBean
 
 		Bundle bundle = new Bundle().setType(COLLECTION);
 		bundle.getIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
-				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY);
+				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519);
 		bundle.setTimestamp(date);
 		bundle.addEntry().setResource(documentReference).setFullUrl("urn:uuid:" + UUID.randomUUID().toString());
 		bundle.addEntry().setResource(binary).setFullUrl(binaryUuid);

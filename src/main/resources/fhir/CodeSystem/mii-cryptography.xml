@@ -23,7 +23,7 @@
 	<versionNeeded value="false" />
 	<content value="complete" />
 	<concept>
-		<code value="public-key" />
+		<code value="public-key-x25519" />
 		<display value="Public Key" />
 		<definition value="Public Key for asymmetric encryption of data-sets" />
 	</concept>
