@@ -28,6 +28,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 import de.medizininformatik_initiative.processes.common.util.ConstantsBase;
 import dev.dsf.bpe.v2.ProcessPluginApi;
+import dev.dsf.bpe.v2.client.dsf.DsfClient;
 
 public class KeyProviderX25519 implements KeyProvider, InitializingBean
 {
@@ -68,28 +69,88 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 				{
 					if (hashMatches(hash, bundleOnServer.get()))
 					{
-						logger.info("PublicKey Bundle already exists on DSF FHIR server with base Url '{}'", baseUrl);
+						logger.info(
+								"PublicKey Bundle for receiver-key-id '{}' already exists on DSF FHIR server with base Url '{}'",
+								receiverKeyId, baseUrl);
 						createOrUpdate = false;
 					}
 					else
 						logger.info(
-								"Updating PublicKey Bundle on DSF FHIR server with baseUrl '{}' because hash changed ...",
-								baseUrl);
+								"Updating PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' because hash changed ...",
+								receiverKeyId, baseUrl);
 				}
 				else
-					logger.info("Creating new PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
+					logger.info(
+							"Creating new PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' ...",
+							receiverKeyId, baseUrl);
 
 				if (createOrUpdate)
 					bundleOnServer = storePublicKeyBundle(receiverKeyId, hash);
 
 				IdType bundleOnServerId = bundleOnServer.get().getIdElement();
 				bundleOnServerId.setIdBase(baseUrl);
-				logger.info("PublicKey Bundle has id '{}'", bundleOnServerId.getValue());
+				logger.info("PublicKey Bundle for receiver-key-id '{}' has id '{}'", receiverKeyId,
+						bundleOnServerId.getValue());
 			}
 		}
 		catch (Exception exception)
 		{
-			throw new RuntimeException("Error while creating PublicKey Bundle: " + exception.getMessage(), exception);
+			throw new RuntimeException("Error while creating PublicKey Bundle for receiver-key-id ' " + receiverKeyId
+					+ "' - " + exception.getMessage(), exception);
+		}
+	}
+
+	@Override
+	public Optional<Bundle> readPublicKeyIfExists(String receiverKeyId, String endpointUrl)
+	{
+		logger.info("Reading PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' ...",
+				receiverKeyId, endpointUrl);
+
+		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class, Map.of(
+				"identifier",
+				Collections.singletonList(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID + "|" + receiverKeyId)));
+
+		int total = publicKeyBundle.getTotal();
+
+		if (total >= 1)
+		{
+			if (total > 1)
+				logger.warn(
+						"PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' contains > 1 entries ({}), using the first",
+						receiverKeyId, endpointUrl, total);
+
+			return Optional.of((Bundle) publicKeyBundle.getEntryFirstRep().getResource());
+		}
+		else
+		{
+			logger.debug("PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' is empty",
+					receiverKeyId, endpointUrl);
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public void deletePublicKeyIfExists(String receiverKeyId)
+	{
+		DsfClient client = api.getDsfClientProvider().getLocal();
+
+		String baseUrl = client.getBaseUrl();
+		Optional<Bundle> bundleOnServer = readPublicKeyIfExists(receiverKeyId, baseUrl);
+
+		if (bundleOnServer.isPresent())
+		{
+			logger.info("Deleting PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' ...",
+					receiverKeyId, baseUrl);
+
+			IdType idType = bundleOnServer.get().getIdElement();
+			client.delete(Bundle.class, idType.getIdPart());
+			client.deletePermanently(Bundle.class, idType.getIdPart());
+		}
+		else
+		{
+			logger.info(
+					"Could not delete PublicKey Bundle for receiver-key-id '{}' on DSF FHIR server with baseUrl '{}' - does not exist",
+					receiverKeyId, baseUrl);
 		}
 	}
 
@@ -102,33 +163,6 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 				.filter(DocumentReference.DocumentReferenceContentComponent::hasAttachment)
 				.map(DocumentReference.DocumentReferenceContentComponent::getAttachment).filter(Attachment::hasHash)
 				.map(Attachment::getHash).anyMatch(h -> MessageDigest.isEqual(hash, h));
-	}
-
-	@Override
-	public Optional<Bundle> readPublicKeyIfExists(String receiverKeyId, String endpointUrl)
-	{
-		logger.info("Reading PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", endpointUrl);
-
-		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class, Map.of(
-				"identifier",
-				Collections.singletonList(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID + "|" + receiverKeyId)));
-
-		int total = publicKeyBundle.getTotal();
-
-		if (total >= 1)
-		{
-			if (total > 1)
-				logger.warn(
-						"PublicKey Bundle on DSF FHIR server with baseUrl '{}' contains > 1 entries ({}), using the first",
-						endpointUrl, total);
-
-			return Optional.of((Bundle) publicKeyBundle.getEntryFirstRep().getResource());
-		}
-		else
-		{
-			logger.debug("PublicKey Bundle on DSF FHIR server with baseUrl '{}' is empty", endpointUrl);
-			return Optional.empty();
-		}
 	}
 
 	private Optional<Bundle> storePublicKeyBundle(String receiverKeyId, byte[] hash)

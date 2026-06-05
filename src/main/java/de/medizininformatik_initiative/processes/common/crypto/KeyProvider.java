@@ -71,6 +71,20 @@ public interface KeyProvider
 	 */
 	Optional<Bundle> readPublicKeyIfExists(String receiverKeyId, String baseUrl);
 
+	/**
+	 * Deletes a PublicKey based on a {@link org.hl7.fhir.r4.model.Bundle} with type
+	 * {@link org.hl7.fhir.r4.model.Bundle.BundleType#COLLECTION} containing a
+	 * {@link org.hl7.fhir.r4.model.DocumentReference} with an {@link org.hl7.fhir.r4.model.Identifier} matching system
+	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID} and
+	 * value based on provided {@param receiverKeyId}, and a {@link org.hl7.fhir.r4.model.Binary} attachment containing
+	 * a PublicKey provided by {@link #getPublicKey()} on the local DSF FHIR server.
+	 *
+	 * @param receiverKeyId
+	 *            the receiverKeyId used as {@link org.hl7.fhir.r4.model.Identifier}.value for the NamingSystem
+	 *            {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID}
+	 */
+	public void deletePublicKeyIfExists(String receiverKeyId);
+
 	// openssl genrsa -out keypair.pem 4096
 	// openssl rsa -in keypair.pem -pubout -out publickey.crt
 	// openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
