@@ -51,14 +51,15 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 		Objects.requireNonNull(api, "api");
 	}
 
-	public void createPublicKeyIfNotExists()
+	@Override
+	public void createPublicKeyIfNotExists(String receiverKeyId)
 	{
 		try
 		{
 			if (publicKey != null)
 			{
 				String baseUrl = api.getEndpointProvider().getLocalEndpointAddress();
-				Optional<Bundle> bundleOnServer = readPublicKeyIfExists(baseUrl);
+				Optional<Bundle> bundleOnServer = readPublicKeyIfExists(receiverKeyId, baseUrl);
 
 				byte[] hash = DigestUtils.sha256(publicKey.getEncoded());
 				boolean createOrUpdate = true;
@@ -79,7 +80,7 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 					logger.info("Creating new PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", baseUrl);
 
 				if (createOrUpdate)
-					bundleOnServer = storePublicKeyBundle(hash);
+					bundleOnServer = storePublicKeyBundle(receiverKeyId, hash);
 
 				IdType bundleOnServerId = bundleOnServer.get().getIdElement();
 				bundleOnServerId.setIdBase(baseUrl);
@@ -104,13 +105,13 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 	}
 
 	@Override
-	public Optional<Bundle> readPublicKeyIfExists(String endpointUrl)
+	public Optional<Bundle> readPublicKeyIfExists(String receiverKeyId, String endpointUrl)
 	{
 		logger.info("Reading PublicKey Bundle on DSF FHIR server with baseUrl '{}' ...", endpointUrl);
 
-		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class,
-				Map.of("identifier", Collections.singletonList(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
-						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519)));
+		Bundle publicKeyBundle = api.getDsfClientProvider().getByEndpointUrl(endpointUrl).search(Bundle.class, Map.of(
+				"identifier",
+				Collections.singletonList(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID + "|" + receiverKeyId)));
 
 		int total = publicKeyBundle.getTotal();
 
@@ -130,15 +131,14 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 		}
 	}
 
-	private Optional<Bundle> storePublicKeyBundle(byte[] hash)
+	private Optional<Bundle> storePublicKeyBundle(String receiverKeyId, byte[] hash)
 	{
-		Bundle bundleToCreate = createPublicKeyBundle(hash);
+		Bundle bundleToCreate = createPublicKeyBundle(receiverKeyId, hash);
 		return Optional.of(api.getDsfClientProvider().getLocal().updateConditionaly(bundleToCreate,
-				Map.of("identifier", List.of(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY + "|"
-						+ ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519))));
+				Map.of("identifier", List.of(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID + "|" + receiverKeyId))));
 	}
 
-	private Bundle createPublicKeyBundle(byte[] hash)
+	private Bundle createPublicKeyBundle(String receiverKeyId, byte[] hash)
 	{
 		Date date = new Date();
 
@@ -146,8 +146,8 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 		binary.setContent(getPublicKey().getEncoded());
 
 		DocumentReference documentReference = new DocumentReference().setStatus(CURRENT).setDocStatus(FINAL);
-		documentReference.getMasterIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
-				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519);
+		documentReference.getMasterIdentifier().setSystem(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID)
+				.setValue(receiverKeyId);
 		documentReference.addAuthor().setType(ResourceType.Organization.name())
 				.setIdentifier(api.getOrganizationProvider().getLocalOrganizationIdentifier().get());
 		documentReference.setDate(date);
@@ -157,8 +157,7 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 				.setUrl(binaryUuid).setHash(hash);
 
 		Bundle bundle = new Bundle().setType(COLLECTION);
-		bundle.getIdentifier().setSystem(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY)
-				.setValue(ConstantsBase.CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519);
+		bundle.getIdentifier().setSystem(ConstantsBase.NAMINGSYSTEM_MII_RECEIVER_KEY_ID).setValue(receiverKeyId);
 		bundle.setTimestamp(date);
 		bundle.addEntry().setResource(documentReference).setFullUrl("urn:uuid:" + UUID.randomUUID().toString());
 		bundle.addEntry().setResource(binary).setFullUrl(binaryUuid);

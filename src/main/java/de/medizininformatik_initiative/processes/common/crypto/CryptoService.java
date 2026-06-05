@@ -7,7 +7,6 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 
 import javax.crypto.DecapsulateException;
@@ -15,30 +14,33 @@ import javax.crypto.NoSuchPaddingException;
 
 import de.hsheilbronn.mi.utils.crypto.hpke.KeyNotFoundException;
 import de.hsheilbronn.mi.utils.crypto.hpke.KeyNotSupportedException;
+import de.hsheilbronn.mi.utils.crypto.hpke.ReceiverPrivateKeyProvider;
 
 public interface CryptoService
 {
-	default byte[] encrypt(byte[] plainText, PublicKey publicKey) throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, InvalidAlgorithmParameterException, IOException, GeneralSecurityException,
-			KeyNotFoundException, KeyNotSupportedException
-	{
-		return encrypt(new ByteArrayInputStream(plainText), publicKey).readAllBytes();
-	}
-
-	InputStream encrypt(InputStream plainText, PublicKey publicKey) throws InvalidKeyException,
-			NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException, IOException,
-			GeneralSecurityException, KeyNotFoundException, KeyNotSupportedException;
-
-	default byte[] decrypt(byte[] cryptText, PrivateKey privateKey) throws InvalidKeyException,
+	default byte[] encrypt(byte[] plainText, PublicKey publicKey, String receiverKeyId) throws InvalidKeyException,
 			NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException, IOException,
 			GeneralSecurityException, KeyNotFoundException, KeyNotSupportedException
 	{
-		return decrypt(new ByteArrayInputStream(cryptText), privateKey).readAllBytes();
+		return encrypt(new ByteArrayInputStream(plainText), publicKey, receiverKeyId).readAllBytes();
 	}
 
-	InputStream decrypt(InputStream cryptText, PrivateKey privateKey) throws InvalidKeyException,
-			NoSuchAlgorithmException, DecapsulateException, NoSuchPaddingException, InvalidAlgorithmParameterException,
-			IOException, GeneralSecurityException, KeyNotFoundException, KeyNotSupportedException;
+	InputStream encrypt(InputStream plainText, PublicKey publicKey, String receiverKeyId) throws InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException, IOException,
+			GeneralSecurityException, KeyNotFoundException, KeyNotSupportedException;
+
+	default byte[] decrypt(byte[] cryptText, ReceiverPrivateKeyProvider receiverPrivateKeyProvider)
+			throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidAlgorithmParameterException, IOException, GeneralSecurityException, KeyNotFoundException,
+			KeyNotSupportedException
+	{
+		return decrypt(new ByteArrayInputStream(cryptText), receiverPrivateKeyProvider).readAllBytes();
+	}
+
+	InputStream decrypt(InputStream cryptText, ReceiverPrivateKeyProvider receiverPrivateKeyProvider)
+			throws InvalidKeyException, NoSuchAlgorithmException, DecapsulateException, NoSuchPaddingException,
+			InvalidAlgorithmParameterException, IOException, GeneralSecurityException, KeyNotFoundException,
+			KeyNotSupportedException;
 
 
 	static CryptoService x25519()

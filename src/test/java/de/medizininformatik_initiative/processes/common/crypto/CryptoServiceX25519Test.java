@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import de.hsheilbronn.mi.utils.crypto.hpke.KeyNotFoundException;
 import de.hsheilbronn.mi.utils.crypto.hpke.KeyNotSupportedException;
+import de.hsheilbronn.mi.utils.crypto.hpke.ReceiverPrivateKeyProvider;
 import de.hsheilbronn.mi.utils.crypto.keypair.KeyPairGeneratorFactory;
 
 public class CryptoServiceX25519Test
@@ -22,13 +23,15 @@ public class CryptoServiceX25519Test
 			throws KeyNotSupportedException, GeneralSecurityException, IOException, KeyNotFoundException
 	{
 		KeyPair keyPair = KeyPairGeneratorFactory.x25519().initialize().generateKeyPair();
+		String receiverKeyId = "default-key-id";
+		ReceiverPrivateKeyProvider provider = _ -> keyPair.getPrivate();
+
 		String text = "Foo, Bar, Baz";
 
 		CryptoService service = CryptoService.x25519();
-
 		InputStream encrypted = service.encrypt(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)),
-				keyPair.getPublic());
-		InputStream decrypted = service.decrypt(encrypted, keyPair.getPrivate());
+				keyPair.getPublic(), receiverKeyId);
+		InputStream decrypted = service.decrypt(encrypted, provider);
 		assertEquals(text, new String(decrypted.readAllBytes(), StandardCharsets.UTF_8));
 	}
 }

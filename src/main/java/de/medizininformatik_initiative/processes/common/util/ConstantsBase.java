@@ -18,8 +18,8 @@ public interface ConstantsBase
 	String CODESYSTEM_DSF_ORGANIZATION_ROLE_VALUE_DIC = "DIC";
 	String CODESYSTEM_DSF_ORGANIZATION_ROLE_VALUE_HRP = "HRP";
 
-	String CODESYSTEM_MII_CRYPTOGRAPHY = "http://medizininformatik-initiative.de/fhir/CodeSystem/cryptography";
-	String CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519 = "public-key-x25519";
+	String NAMINGSYSTEM_MII_RECEIVER_KEY_ID = "http://medizininformatik-initiative.de/sid/cryptography/receiver-key-id";
+	String NAMINGSYSTEM_MII_RECEIVER_KEY_ID_VALUE_DEFAULT_KEY_X25519 = "default-key-x25519";
 
 	String CODESYSTEM_DATA_SET_STATUS = "http://medizininformatik-initiative.de/fhir/CodeSystem/data-set-status";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_NOT_ALLOWED = "not-allowed";

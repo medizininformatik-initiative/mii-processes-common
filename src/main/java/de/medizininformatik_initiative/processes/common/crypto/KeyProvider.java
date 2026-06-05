@@ -46,27 +46,30 @@ public interface KeyProvider
 	 * Creates a PublicKey based on a {@link org.hl7.fhir.r4.model.Bundle} with type
 	 * {@link org.hl7.fhir.r4.model.Bundle.BundleType#COLLECTION} containing a
 	 * {@link org.hl7.fhir.r4.model.DocumentReference} with an {@link org.hl7.fhir.r4.model.Identifier} matching system
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY} and code
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519}
-	 * and a {@link org.hl7.fhir.r4.model.Binary} attachment based on a PublicKey provided by {@link #getPublicKey()} on
-	 * the local DSF FHIR server.
+	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID} and
+	 * value based on provided {@param receiverKeyId}, and a {@link org.hl7.fhir.r4.model.Binary} attachment containing
+	 * a PublicKey provided by {@link #getPublicKey()} on the local DSF FHIR server.
+	 *
+	 * @param receiverKeyId
+	 *            the receiverKeyId used as {@link org.hl7.fhir.r4.model.Identifier}.value for the NamingSystem
+	 *            {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID}
 	 */
-	void createPublicKeyIfNotExists();
+	void createPublicKeyIfNotExists(String receiverKeyId);
 
 	/**
 	 * Reads a PublicKey based on a {@link org.hl7.fhir.r4.model.Bundle} with type
 	 * {@link org.hl7.fhir.r4.model.Bundle.BundleType#COLLECTION} containing a
 	 * {@link org.hl7.fhir.r4.model.DocumentReference} with an {@link org.hl7.fhir.r4.model.Identifier} matching system
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY} and code
-	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY_X25519}
-	 * and a {@link org.hl7.fhir.r4.model.Binary} attachment based on a PublicKey provided by {@link #getPublicKey()} on
-	 * a local or remote DSF FHIR server.
+	 * {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID} and
+	 * value based on provided {@param receiverKeyId}, and a {@link org.hl7.fhir.r4.model.Binary} attachment containing
+	 * a PublicKey provided by {@link #getPublicKey()} on a local or remote DSF FHIR server.
 	 *
-	 * @param baseUrl
-	 *            the base URL used to connect to the local or remote DSF FHIR server, not <code>null</code> or empty
+	 * @param receiverKeyId
+	 *            the receiverKeyId used as {@link org.hl7.fhir.r4.model.Identifier}.value for the NamingSystem
+	 *            {@link de.medizininformatik_initiative.processes.common.util.ConstantsBase#NAMINGSYSTEM_MII_RECEIVER_KEY_ID}
 	 * @return {@link Optional<org.hl7.fhir.r4.model.Bundle>} if a PublicKey exists, {@link Optional#empty()} otherwise
 	 */
-	Optional<Bundle> readPublicKeyIfExists(String baseUrl);
+	Optional<Bundle> readPublicKeyIfExists(String receiverKeyId, String baseUrl);
 
 	// openssl genrsa -out keypair.pem 4096
 	// openssl rsa -in keypair.pem -pubout -out publickey.crt
