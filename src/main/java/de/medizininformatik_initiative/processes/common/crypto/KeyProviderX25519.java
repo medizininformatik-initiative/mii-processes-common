@@ -70,7 +70,7 @@ public class KeyProviderX25519 implements KeyProvider, InitializingBean
 					if (hashMatches(hash, bundleOnServer.get()))
 					{
 						logger.info(
-								"PublicKey Bundle for receiver-key-id '{}' already exists on DSF FHIR server with base Url '{}'",
+								"PublicKey Bundle for receiver-key-id '{}' already exists on DSF FHIR server with baseUrl '{}'",
 								receiverKeyId, baseUrl);
 						createOrUpdate = false;
 					}
