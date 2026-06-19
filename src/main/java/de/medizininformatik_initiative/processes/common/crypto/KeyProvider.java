@@ -218,14 +218,12 @@ public interface KeyProvider
 	{
 		PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_X25519).generatePublic(new X509EncodedKeySpec(bytes));
 
-		if (publicKey instanceof XECPublicKey)
-		{
-			return publicKey;
-		}
-		else
+		if (!(publicKey instanceof XECPublicKey) && !(ALGORITHM_X25519.equalsIgnoreCase(publicKey.getAlgorithm())))
 		{
 			throw new IllegalStateException(
 					"Provided bytes are not an x25519 EC based public key. Only x25519 EC is supported.");
 		}
+
+		return publicKey;
 	}
 }
