@@ -1,7 +1,7 @@
 package de.medizininformatik_initiative.processes.common.util;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 import org.hl7.fhir.r4.model.BackboneElement;
 import org.hl7.fhir.r4.model.Coding;
@@ -12,17 +12,19 @@ import org.hl7.fhir.r4.model.Task.TaskOutputComponent;
 
 public class DataSetStatusGenerator
 {
-	public ParameterComponent createDataSetStatusInput(String statusCode, String typeSystem, String typeCode)
+	public ParameterComponent createDataSetStatusInput(String statusVersion, String statusCode, String typeSystem,
+			String typeVersion, String typeCode)
 	{
-		return createDataSetStatusInput(statusCode, typeSystem, typeCode, null);
+		return createDataSetStatusInput(statusVersion, statusCode, typeSystem, typeVersion, typeCode, null);
 	}
 
-	public ParameterComponent createDataSetStatusInput(String statusCode, String typeSystem, String typeCode,
-			String errorMessage)
+	public ParameterComponent createDataSetStatusInput(String statusVersion, String statusCode, String typeSystem,
+			String typeVersion, String typeCode, String errorMessage)
 	{
 		ParameterComponent input = new ParameterComponent();
-		input.setValue(new Coding().setSystem(ConstantsBase.CODESYSTEM_DATA_SET_STATUS).setCode(statusCode));
-		input.getType().addCoding().setSystem(typeSystem).setCode(typeCode);
+		input.setValue(new Coding().setSystem(ConstantsBase.CODESYSTEM_DATA_SET_STATUS).setVersion(statusVersion)
+				.setCode(statusCode));
+		input.getType().addCoding().setSystem(typeSystem).setVersion(typeVersion).setCode(typeCode);
 
 		if (errorMessage != null)
 			addErrorExtension(input, errorMessage);
@@ -30,17 +32,19 @@ public class DataSetStatusGenerator
 		return input;
 	}
 
-	public TaskOutputComponent createDataSetStatusOutput(String statusCode, String typeSystem, String typeCode)
+	public TaskOutputComponent createDataSetStatusOutput(String statusVersion, String statusCode, String typeSystem,
+			String typeVersion, String typeCode)
 	{
-		return createDataSetStatusOutput(statusCode, typeSystem, typeCode, null);
+		return createDataSetStatusOutput(statusVersion, statusCode, typeSystem, typeVersion, typeCode, null);
 	}
 
-	public TaskOutputComponent createDataSetStatusOutput(String statusCode, String typeSystem, String typeCode,
-			String errorMessage)
+	public TaskOutputComponent createDataSetStatusOutput(String statusVersion, String statusCode, String typeSystem,
+			String typeVersion, String typeCode, String errorMessage)
 	{
 		TaskOutputComponent output = new TaskOutputComponent();
-		output.setValue(new Coding().setSystem(ConstantsBase.CODESYSTEM_DATA_SET_STATUS).setCode(statusCode));
-		output.getType().addCoding().setSystem(typeSystem).setCode(typeCode);
+		output.setValue(new Coding().setSystem(ConstantsBase.CODESYSTEM_DATA_SET_STATUS).setVersion(statusVersion)
+				.setCode(statusCode));
+		output.getType().addCoding().setSystem(typeSystem).setVersion(typeVersion).setCode(typeCode);
 
 		if (errorMessage != null)
 			addErrorExtension(output, errorMessage);
@@ -54,53 +58,55 @@ public class DataSetStatusGenerator
 				.setValue(new StringType(errorMessage));
 	}
 
-	public void transformInputToOutput(Task inputTask, Task outputTask, String typeSystem, String typeCode)
+	public void transformInputToOutput(Task inputTask, Task outputTask, String typeSystem, String typeVersion,
+			String typeCode)
 	{
-		transformInputToOutputComponents(inputTask, typeSystem, typeCode).forEach(outputTask::addOutput);
+		transformInputToOutputComponents(inputTask, typeSystem, typeVersion, typeCode).forEach(outputTask::addOutput);
 	}
 
-	public Stream<TaskOutputComponent> transformInputToOutputComponents(Task inputTask, String typeSystem,
-			String typeCode)
+	public List<TaskOutputComponent> transformInputToOutputComponents(Task inputTask, String typeSystem,
+			String typeVersion, String typeCode)
 	{
 		Objects.requireNonNull(typeSystem);
 		Objects.requireNonNull(typeCode);
 
 		return inputTask.getInput().stream()
-				.filter(i -> i.getType().getCoding().stream()
-						.anyMatch(c -> typeSystem.equals(c.getSystem()) && typeCode.equals(c.getCode())))
-				.map(this::toTaskOutputComponent);
+				.filter(i -> i.getType().getCoding().stream().anyMatch(c -> typeSystem.equals(c.getSystem())
+						&& typeVersion.equals(c.getVersion()) && typeCode.equals(c.getCode())))
+				.map(this::toTaskOutputComponent).toList();
 	}
 
 	private TaskOutputComponent toTaskOutputComponent(ParameterComponent inputComponent)
 	{
 		TaskOutputComponent outputComponent = new TaskOutputComponent().setType(inputComponent.getType())
-				.setValue(inputComponent.getValue().copy());
+				.setValue(inputComponent.getValue());
 		outputComponent.setExtension(inputComponent.getExtension());
 
 		return outputComponent;
 	}
 
-	public void transformOutputToInput(Task outputTask, Task inputTask, String typeSystem, String typeCode)
+	public void transformOutputToInput(Task outputTask, Task inputTask, String typeSystem, String typeVersion,
+			String typeCode)
 	{
-		transformOutputToInputComponent(outputTask, typeSystem, typeCode).forEach(inputTask::addInput);
+		transformOutputToInputComponent(outputTask, typeSystem, typeVersion, typeCode).forEach(inputTask::addInput);
 	}
 
-	public Stream<ParameterComponent> transformOutputToInputComponent(Task outputTask, String typeSystem,
-			String typeCode)
+	public List<ParameterComponent> transformOutputToInputComponent(Task outputTask, String typeSystem,
+			String typeVersion, String typeCode)
 	{
 		Objects.requireNonNull(typeSystem);
 		Objects.requireNonNull(typeCode);
 
 		return outputTask.getOutput().stream()
-				.filter(i -> i.getType().getCoding().stream()
-						.anyMatch(c -> typeSystem.equals(c.getSystem()) && typeCode.equals(c.getCode())))
-				.map(this::toTaskInputComponent);
+				.filter(i -> i.getType().getCoding().stream().anyMatch(c -> typeSystem.equals(c.getSystem())
+						&& typeVersion.equals(c.getVersion()) && typeCode.equals(c.getCode())))
+				.map(this::toTaskInputComponent).toList();
 	}
 
 	private ParameterComponent toTaskInputComponent(TaskOutputComponent outputComponent)
 	{
 		ParameterComponent inputComponent = new ParameterComponent().setType(outputComponent.getType())
-				.setValue(outputComponent.getValue().copy());
+				.setValue(outputComponent.getValue());
 		inputComponent.setExtension(outputComponent.getExtension());
 
 		return inputComponent;
