@@ -11,8 +11,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.MetadataResource;
 import org.springframework.beans.factory.InitializingBean;
 
-import dev.dsf.bpe.v1.ProcessPluginApi;
-import dev.dsf.bpe.v1.ProcessPluginDefinition;
+import dev.dsf.bpe.v2.ProcessPluginApi;
+import dev.dsf.bpe.v2.ProcessPluginDefinition;
 
 public class MetadataResourceConverter implements InitializingBean
 {
@@ -51,19 +51,16 @@ public class MetadataResourceConverter implements InitializingBean
 	}
 
 	private final ProcessPluginApi api;
-	private final String resourcesVersion;
 
-	public MetadataResourceConverter(ProcessPluginApi api, String resourcesVersion)
+	public MetadataResourceConverter(ProcessPluginApi api)
 	{
 		this.api = api;
-		this.resourcesVersion = resourcesVersion;
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception
 	{
 		Objects.requireNonNull(api, "api");
-		Objects.requireNonNull(resourcesVersion, "resourcesVersion");
 	}
 
 	public <T extends MetadataResource> void searchAndConvertOlderResourcesIfCurrentIsNewestResource(String url,
@@ -82,8 +79,7 @@ public class MetadataResourceConverter implements InitializingBean
 
 	private Bundle search(Class<? extends MetadataResource> type, String url)
 	{
-		return api.getFhirWebserviceClientProvider().getLocalWebserviceClient().search(type,
-				Map.of("url", List.of(url)));
+		return api.getDsfClientProvider().getLocal().search(type, Map.of("url", List.of(url)));
 	}
 
 	private <T extends MetadataResource> List<T> extractResourcesAndSortDesc(Bundle bundle, Class<T> type, String url)
@@ -96,6 +92,7 @@ public class MetadataResourceConverter implements InitializingBean
 	private boolean currentIsNewestResourceAndOlderResourcesExist(
 			List<? extends MetadataResource> allResourcesSortedDesc)
 	{
-		return allResourcesSortedDesc.size() > 1 && resourcesVersion.equals(allResourcesSortedDesc.get(0).getVersion());
+		return allResourcesSortedDesc.size() > 1 && api.getProcessPluginDefinition().getResourceVersion()
+				.equals(allResourcesSortedDesc.get(0).getVersion());
 	}
 }

@@ -1,9 +1,14 @@
 package de.medizininformatik_initiative.processes.common.util;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 public interface ConstantsBase
 {
 	String PROCESS_MII_NAME_BASE = "medizininformatik-initiativede_";
 	String PROCESS_MII_URI_BASE = "http://medizininformatik-initiative.de/bpe/Process/";
+
+	String BPMN_EXECUTION_VARIABLE_SENT_TASK = "sentTask";
 
 	String NAMINGSYSTEM_MII_PROJECT_IDENTIFIER = "http://medizininformatik-initiative.de/sid/project-identifier";
 	String NAMINGSYSTEM_DSF_ORGANIZATION_IDENTIFIER_MEDICAL_INFORMATICS_INITIATIVE_CONSORTIUM = "medizininformatik-initiative.de";
@@ -13,8 +18,8 @@ public interface ConstantsBase
 	String CODESYSTEM_DSF_ORGANIZATION_ROLE_VALUE_DIC = "DIC";
 	String CODESYSTEM_DSF_ORGANIZATION_ROLE_VALUE_HRP = "HRP";
 
-	String CODESYSTEM_MII_CRYPTOGRAPHY = "http://medizininformatik-initiative.de/fhir/CodeSystem/cryptography";
-	String CODESYSTEM_MII_CRYPTOGRAPHY_VALUE_PUBLIC_KEY = "public-key";
+	String NAMINGSYSTEM_MII_RECEIVER_KEY_ID = "http://medizininformatik-initiative.de/sid/cryptography/receiver-key-id";
+	String NAMINGSYSTEM_MII_RECEIVER_KEY_ID_VALUE_DEFAULT_KEY_X25519 = "default-key-x25519";
 
 	String CODESYSTEM_DATA_SET_STATUS = "http://medizininformatik-initiative.de/fhir/CodeSystem/data-set-status";
 	String CODESYSTEM_DATA_SET_STATUS_VALUE_NOT_ALLOWED = "not-allowed";
@@ -29,6 +34,8 @@ public interface ConstantsBase
 	String EXTENSION_DATA_SET_STATUS_ERROR_URL = "http://medizininformatik-initiative.de/fhir/StructureDefinition/extension-data-set-status-error";
 
 	int DSF_CLIENT_RETRY_6_TIMES = 6;
-	long DSF_CLIENT_RETRY_INTERVAL_10SEC = 10000;
-	long DSF_CLIENT_RETRY_INTERVAL_5MIN = 300000;
+	Duration DSF_CLIENT_RETRY_INTERVAL_10SEC = Duration.of(10, ChronoUnit.SECONDS);
+	Duration DSF_CLIENT_RETRY_INTERVAL_5MIN = Duration.of(5, ChronoUnit.MINUTES);
+
+	String EXCEPTION_MESSAGE_DIVIDER = " - ";
 }
